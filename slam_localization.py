@@ -38,7 +38,7 @@ def compute_mean_and_covariance(poses, weights):
 
   weighted_cov = numpy.zeros((3, 3))
   for pose, weight in zip(poses, weights):
-    vec = pose - weighted_mean
+    vec = [pose[0] - weighted_mean[0], pose[1] - weighted_mean[1], pose[2] - weighted_mean[2]]
     weighted_cov += weight * numpy.outer(vec, vec)
 
   return weighted_mean, weighted_cov
@@ -66,18 +66,7 @@ def score_pose(pose, reference_pose, feature_associations, transform_function, s
     weight *= likelihood
   return weight
 
-def update_localization(poses, weights, resample=True):
-  """
-  Update the localization based on poses and weights.
-
-  Parameters:
-  - poses (list of pose): Current set of poses representing the pose distribution.
-  - weights (list of weights): Current set of weihts representing the pose distribution.
-  - resample: if resample is set to true then new sample points are drawn
-
-  Returns:
-  - Updated list of poses, and updated list of weights.
-  """
+def normalize_weights(weights):
   total_weight = sum(weights)
 
   if total_weight <= 0.0:
@@ -92,13 +81,7 @@ def update_localization(poses, weights, resample=True):
       weights[i] = w / total_weight
     total_weight = sum(weights)
 
-  # See if we wanted to resample the poses
-  if resample:
-    mean, covariance = compute_mean_and_covariance(poses, weights)
-    return initialize_particles(num_particles = len(poses), initial_pose=mean, pose_noise_cov=covariance)
-
-  # Otherwise duplicate existing samples
-  return numpy.random.choice(poses, size=len(poses), p=weights), weights
+  return weights
 
 class TestBasicMethods(unittest.TestCase):
   def test_initialize_particles(self):
