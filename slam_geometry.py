@@ -20,17 +20,18 @@ def segment_endpoint_distance(segment1, segment2):
          point_to_segment_distance(segment2[0], segment1) + \
          point_to_segment_distance(segment2[1], segment1)
 
-def point_to_line_distance(p0, p1, p2):
-  """Returns the distance between the point p0 and the line formed by p1 and p2"""
-  # Length of the line segment p1, p2
-  segment_length = math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+def point_to_line_distance(point, line):
+  """Returns the distance between the point and the line"""
+  # Length of the line segment
+  segment_length = math.hypot(line[1][1] - line[0][1], line[1][0] - line[0][0])
   if segment_length <= 0:
     # if segment length is 0, then the line is arebitrary so we can always draw a line
-    # to p0 that will cross it.
+    # to point that will cross it.
     return 0.0
-  # Double the area of a triangle formed by  points p0, p1, p2
-  double_triangle_area = numpy.abs((p2[0] - p1[0]) * (p0[1] - p1[1]) - (p0[0] - p1[0]) * (p2[1] - p1[1]))
-  # in this case the height of triangle is (distance to p0 from line p1, p2) and we have A = (1/2) * b * h
+  # Double the area of a triangle formed by points point and endpoints of line
+  double_triangle_area = numpy.abs((line[1][0] - line[0][0]) * (point[1] - line[0][1]) - \
+                                   (point[0] - line[0][0]) * (line[1][1] - line[0][1]))
+  # in this case the height of triangle is (distance to point from line) and we have A = (1/2) * b * h
   # so h = 2 * A / b
   return double_triangle_area / segment_length
 
@@ -60,41 +61,47 @@ def point_to_segment_distance(point, segment):
   elif dot >= 1.0:
     return math.hypot(point[0] - segment[1][0], point[1] - segment[1][1])
   else:
-    return point_to_line_distance(point, segment[0], segment[1])
+    return point_to_line_distance(point, segment)
 
-def segments_intersect(line_segment1, line_segment2):
+def segments_intersect(segment1, segment2):
   """Returns true if segmnets intersect"""
-  intersect = line_segment_intersection(line_segment1, line_segment2)
-  if not intersect:
-    return False
-  p1 = projected_point_on_segment(intersect, line_segment1)
-  if p1 < 0.0 or p1 > 1.0:
-    return False
-  p2 = projected_point_on_segment(intersect, line_segment2)
-  if p2 < 0.0 or p2 > 1.0:
-    return False
-  return True
-
-def segment_to_segment_distance(line_segment1, line_segment2):
-  """Returns the minimum distance between two line segments"""
-  if segments_intersect(line_segment1, line_segment2):
-    return 0.0
-  distances = [point_to_segment_distance(line_segment1[0], line_segment2), \
-               point_to_segment_distance(line_segment1[1], line_segment2), \
-               point_to_segment_distance(line_segment2[0], line_segment1), \
-               point_to_segment_distance(line_segment2[1], line_segment1)]
-  return min(distances)
-
-def lines_intersect(line_segment1, line_segment2):
-  """Returns true if two lines expressed by pairs of points, intersect"""
-  if line_segment_intersection(line_segment1, line_segment2):
+  if segment_segment_intersection(segment1, segment2):
     return True
   return False
 
-def line_segment_intersection(line_segment1, line_segment2):
+def segment_segment_intersection(segment1, segment2):
+  """Returns the intersection point between two segments"""
+  intersection = line_line_intersection(segment1, segment2)
+  if not intersection:
+    return None
+  p1 = projected_point_on_segment(intersection, segment1)
+  if p1 < 0.0 or p1 > 1.0:
+    return None
+  p2 = projected_point_on_segment(intersection, segment2)
+  if p2 < 0.0 or p2 > 1.0:
+    return None
+  return intersection
+
+def segment_to_segment_distance(segment1, segment2):
+  """Returns the minimum distance between two segments"""
+  if segments_intersect(segment1, segment2):
+    return 0.0
+  distances = [point_to_segment_distance(segment1[0], segment2), \
+               point_to_segment_distance(segment1[1], segment2), \
+               point_to_segment_distance(segment2[0], segment1), \
+               point_to_segment_distance(segment2[1], segment1)]
+  return min(distances)
+
+def lines_intersect(line1, line2):
+  """Returns true if two lines expressed by pairs of points, intersect"""
+  if line_line_intersection(line1, line2):
+    return True
+  return False
+
+def line_line_intersection(line1, line2):
   """Returns the intersection point formed by two lines defined by pairs of points"""
-  xdiff = (line_segment1[0][0] - line_segment1[1][0], line_segment2[0][0] - line_segment2[1][0])
-  ydiff = (line_segment1[0][1] - line_segment1[1][1], line_segment2[0][1] - line_segment2[1][1])
+  xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+  ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
 
   def det(a, b):
     return a[0] * b[1] - a[1] * b[0]
@@ -103,7 +110,7 @@ def line_segment_intersection(line_segment1, line_segment2):
   if div == 0:
     return None
 
-  d = (det(*line_segment1), det(*line_segment2))
+  d = (det(*line1), det(*line2))
   x = det(d, xdiff) / div
   y = det(d, ydiff) / div
   return (x, y)
@@ -178,13 +185,13 @@ class TestBasicMethods(unittest.TestCase):
     self.assertEqual(normalize_angle(math.pi * 9), math.pi)
 
   def test_point_to_line_distance(self):
-    self.assertEqual(point_to_line_distance((0, 0), (1, 1), (1, 1)), 0.0)
-    self.assertEqual(point_to_line_distance((0, 0), (1, 1), (2, 1)), 1.0)
-    self.assertEqual(point_to_line_distance((0, 0), (1, 1), (1, 2)), 1.0)
-    self.assertEqual(point_to_line_distance((2, 0), (1, 1), (1, 2)), 1.0)
-    self.assertEqual(point_to_line_distance((0, 2), (1, 1), (2, 1)), 1.0)
-    self.assertEqual(point_to_line_distance((3, 0), (1, 1), (1, 2)), 2.0)
-    self.assertEqual(point_to_line_distance((0, 3), (1, 1), (2, 1)), 2.0)
+    self.assertEqual(point_to_line_distance((0, 0), ((1, 1), (1, 1))), 0.0)
+    self.assertEqual(point_to_line_distance((0, 0), ((1, 1), (2, 1))), 1.0)
+    self.assertEqual(point_to_line_distance((0, 0), ((1, 1), (1, 2))), 1.0)
+    self.assertEqual(point_to_line_distance((2, 0), ((1, 1), (1, 2))), 1.0)
+    self.assertEqual(point_to_line_distance((0, 2), ((1, 1), (2, 1))), 1.0)
+    self.assertEqual(point_to_line_distance((3, 0), ((1, 1), (1, 2))), 2.0)
+    self.assertEqual(point_to_line_distance((0, 3), ((1, 1), (2, 1))), 2.0)
 
   def test_point_to_segment_distance(self):
     self.assertAlmostEqual(point_to_segment_distance((0, 0), ((1, 1), (1, 1))), 1.4142135623730951)
@@ -203,13 +210,13 @@ class TestBasicMethods(unittest.TestCase):
     self.assertAlmostEqual(segment_to_segment_distance(((0, 0), (1, 0)), ((1, 0), (2, 0))), 0.0)
     self.assertAlmostEqual(segment_to_segment_distance(((0, 0), (1, 1)), ((1, 0), (0, 1))), 0.0)
 
-  def test_line_segment_intersection(self):
-    self.assertEqual(line_segment_intersection(line_segment1 = ((0, 0), (1, 0)), \
-                                               line_segment2 = ((1, 1), (1, 0))), \
+  def test_line_line_intersection(self):
+    self.assertEqual(line_line_intersection(line1 = ((0, 0), (1, 0)), \
+                                            line2 = ((1, 1), (1, 0))), \
                      (1, 0))
 
-    self.assertEqual(line_segment_intersection(line_segment1 = ((0, 0), (1, 0)), \
-                                               line_segment2 = ((1, 2), (1, 1))), \
+    self.assertEqual(line_line_intersection(line1 = ((0, 0), (1, 0)), \
+                                            line2 = ((1, 2), (1, 1))), \
                      (1, 0))
 
   def test_polar_to_cartesian(self):

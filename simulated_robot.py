@@ -1,7 +1,7 @@
 # Simulated Robot
 import numpy
 
-from slam_geometry import point_to_point_distance, segments_intersect, line_segment_intersection, normalize_angle, \
+from slam_geometry import point_to_point_distance, normalize_angle, segment_segment_intersection, \
                           segment_to_segment_distance, point_to_segment_distance
 
 class SimulatedRobot:
@@ -73,8 +73,8 @@ class SimulatedRobot:
     y_end = origin[1] + min_distance * numpy.sin(angle_rad)
     ray_segment = (origin, (x_end, y_end))
     for wall_segment in self.segments:
-      intersection = line_segment_intersection(ray_segment, wall_segment)
-      if intersection and segments_intersect(ray_segment, wall_segment):
+      intersection = segment_segment_intersection(ray_segment, wall_segment)
+      if intersection:
         distance = point_to_point_distance(origin, intersection)
         if distance < min_distance:
           min_distance = distance

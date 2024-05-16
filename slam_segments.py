@@ -27,7 +27,7 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
     distance = 0
     for ix in range(si + 1, ei):
       distance = max(distance, point_to_line_distance(cartesian_points[ix], \
-                                                      cartesian_points[si], cartesian_points[ei]))
+                                                      (cartesian_points[si], cartesian_points[ei])))
       if distance >= threshold:
         break
 
