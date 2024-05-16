@@ -24,19 +24,17 @@ class MappingEnvironment:
       self.map_corners[corner] = {}
 
     # Initialize the initial guess at the position
-    self.poses, self.weights = initialize_particles(num_particles = 100, \
-      initial_pose = initial_position, \
-      pose_noise_cov = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, math.pi / 200.0]])
+    self.robot_mean = initial_position
+    self.robot_covariance = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, math.pi / 200.0]]
+    self.poses, self.weights = initialize_particles(num_particles = 100, initial_pose = self.robot_mean, \
+                                                    pose_noise_cov = self.robot_covariance)
 
   def lidar_update(self, lidar_data):
-    # estimate best robot position from particles
-    robot_mean, robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
-
     # We first draw new samples based on the distribution
     self.poses, self.weights = update_localization(self.poses, self.weights, resample = True)
 
     # This is the pose from which lidar points are provided.
-    reference_pose = robot_mean
+    reference_pose = self.robot_mean
 
     # convert the lidar data into cartesian data
     self.cartesian_points = polar_to_cartesian(lidar_data, reference_pose)
@@ -48,7 +46,7 @@ class MappingEnvironment:
     clustered_corners = cluster_corners(seen_corners, eps=0.5, min_samples=1)
 
     # Here we attempt to find a pose from which association seems more reasonable
-    association_pose = robot_mean
+    association_pose = self.robot_mean
     for pose in self.poses:
       association_pose = pose
 
@@ -90,15 +88,23 @@ class MappingEnvironment:
         total_sum = sum(self.weights)
     self.weights = [w / total_sum for w in self.weights]
 
+    # estimate best robot position from particles
+    self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
+
   def move_robot(self, move_distance, rotate_angle, distance_error, rotation_error):
     rng = numpy.random.default_rng()
     best_guess = (move_distance, rotate_angle)
     covariance = [[distance_error, 0.0], [0.0, rotation_error]]
     for i, p in enumerate(self.poses):
       noisy_guess = rng.multivariate_normal(best_guess, covariance)
+      # noise to rotation is applied before and after move to model error accumulated during the move
       self.poses[i][2] += noisy_guess[1]
       self.poses[1][0] += noisy_guess[0] * numpy.cos(self.poses[i][2])
       self.poses[1][1] += noisy_guess[0] * numpy.sin(self.poses[i][2])
+      self.poses[i][2] += noisy_guess[1]
+
+    # estimate best robot position from particles
+    self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
 
 if __name__ == '__main__':
   print("done")
