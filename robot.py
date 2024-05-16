@@ -10,11 +10,13 @@ from slam_localization import compute_mean_and_covariance
 from slam import MappingEnvironment
 
 class SimulatedRobot:
-  def __init__(self, initial_position, segments, noise_std_dev=1.0, angle_noise_std_dev=0.5, num_points=100, field_of_view=360, max_distance=100):
+  def __init__(self, initial_position, segments, noise_std_dev=1.0, angle_noise_std_dev=0.5, sensor_noise=0.1, \
+               num_points=100, field_of_view=360, max_distance=100):
     self.position = np.array(initial_position)
     self.segments = segments
     self.noise_std_dev = noise_std_dev  # Noise standard deviation for movement
     self.angle_noise_std_dev = angle_noise_std_dev  # Noise standard deviation for rotation
+    self.sensor_noise = sensor_noise
     self.num_points = num_points  # Number of LIDAR points
     self.field_of_view = field_of_view  # Field of view for LIDAR in degrees
     self.max_distance = max_distance  # Maximum sensing distance for LIDAR
@@ -44,7 +46,7 @@ class SimulatedRobot:
     for angle in np.linspace(0, self.field_of_view, self.num_points):
       distance = self.sense(self.position, np.deg2rad(angle) + self.position[2], self.max_distance)
       if distance < self.max_distance:
-        sensed_data.append((1, angle, distance))
+        sensed_data.append((1, angle, distance + np.random.normal(0, self.sensor_noise)))
     return sensed_data
 
   def sense(self, origin, angle_rad, max_distance):
@@ -87,6 +89,7 @@ if __name__ == '__main__':
                          segments = segments, \
                          noise_std_dev = move_error, \
                          angle_noise_std_dev = turn_error, \
+                         sensor_noise = 1.0, \
                          max_distance = 1000.0)
 
   mapping_environment = MappingEnvironment(initial_position=initial_position, segments = segments)
@@ -122,7 +125,7 @@ if __name__ == '__main__':
     # get the best pose estimate
     robot_mean, robot_covariance = compute_mean_and_covariance(mapping_environment.poses, \
                                                                mapping_environment.weights)
-    print("distribution", robot_mean, robot_covariance[0][0], robot_covariance[1][1], robot_covariance[2][2])
+    #print("distribution", robot_mean, robot_covariance[0][0], robot_covariance[1][1], robot_covariance[2][2])
 
     # show the real returns based on robot actual position.
     #if lidar_data:
@@ -165,5 +168,5 @@ if __name__ == '__main__':
     for corner in mapping_environment.new_corners:
       ax.plot([corner[0]], [corner[1]], 'ro', markersize = 5)
 
-  ani = animation.FuncAnimation(fig, update, frames=100, interval=10)
+  ani = animation.FuncAnimation(fig, update, frames=1000, interval=1)
   plt.show()
