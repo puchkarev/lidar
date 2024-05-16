@@ -1,7 +1,8 @@
 # Simulated Robot
 import numpy
 
-from slam_geometry import point_to_point_distance, segments_intersect, line_segment_intersection, normalize_angle
+from slam_geometry import point_to_point_distance, segments_intersect, line_segment_intersection, normalize_angle, \
+                          segment_to_segment_distance, point_to_segment_distance
 
 class SimulatedRobot:
   def __init__(self, initial_position, segments, \
@@ -32,8 +33,24 @@ class SimulatedRobot:
     dx = noisy_distance * numpy.cos(self.position[2])
     dy = noisy_distance * numpy.sin(self.position[2])
 
-    # Update position
-    self.position += numpy.array([dx, dy, 0.0])
+    new_position = self.position + numpy.array([dx, dy, 0.0])
+    # check for collisions
+    has_collision = False
+    pt_old = [self.position[0], self.position[1]]
+    pt_new = [new_position[0], new_position[1]]
+    for segment in self.segments:
+      path_dist = segment_to_segment_distance((pt_old, pt_new), segment)
+      if path_dist < 10.0:
+        if point_to_segment_distance(pt_old, segment) > path_dist:
+          has_collision = True
+          break
+
+    # If we have collided inform the caller
+    if has_collision:
+      return False
+
+    self.position = new_position
+    return True
 
   def sense_environment(self):
     """

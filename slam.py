@@ -25,7 +25,7 @@ class MappingEnvironment:
     self.corner_association_threshold = 10.0 # threshold for corner association
 
     self.increase_pose_variance = 2.0 # if we did not localize grow position variance by this amount
-    self.increase_angle_variance = numpy.deg2rad(2.0) # if we did nto localize grow angle variance by this amount
+    self.increase_angle_variance = numpy.deg2rad(5.0) # if we did nto localize grow angle variance by this amount
 
     self.scoring_sensor_noise = 50.0 # the amount of sensor noise we are expecting for scoring
 
@@ -48,22 +48,45 @@ class MappingEnvironment:
     # Initialize the initial guess at the position
     self.robot_mean = initial_position
     self.robot_covariance = robot_covariance
-    self.poses, self.weights = initialize_particles(num_particles = num_points, initial_pose = self.robot_mean, \
-                                                    pose_noise_cov = self.robot_covariance)
+    self.reinitialize_particles(num_points)
 
     # indicates whether we are localized
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
 
+    self.cartesian_points = []
+    self.segment_associations = []
+    self.new_segments = []
+    self.corner_associations = []
+    self.new_corners = []
+
+  # Determines if we are localized purely based on the covariance matrix
   def is_localized_from_covariance(self, robot_covariance):
     return robot_covariance[0][0] < self.localized_distance_threshold and \
            robot_covariance[1][1] < self.localized_distance_threshold and \
            robot_covariance[2][2] < self.localized_angle_threshold
 
-  def lidar_update(self, lidar_data):
-    # We first draw new samples based on the distribution
-    self.poses, self.weights = initialize_particles(num_particles = len(self.poses), \
+  # Reinitializes the particles and may change the number of particles used.
+  def reinitialize_particles(self, num_particles):
+    self.poses, self.weights = initialize_particles(num_particles = num_particles, \
                                                     initial_pose = self.robot_mean, \
                                                     pose_noise_cov = self.robot_covariance)
+
+  def add_noise(self, x_error, y_error, rotation_error):
+    for i, p in enumerate(self.poses):
+      new_pose = [p[0] + numpy.random.normal(0, x_error), \
+                  p[1] + numpy.random.normal(0, y_error), \
+                  p[2] + numpy.random.normal(0, rotation_error)]
+      self.poses[i] = new_pose
+
+    # estimate best robot position from particles
+    self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
+
+    # update whether we are localized based on the covariance
+    self.localized = self.is_localized_from_covariance(self.robot_covariance)
+
+  def lidar_update(self, lidar_data):
+    # We first draw new samples based on the distribution
+    self.reinitialize_particles(len(self.poses))
 
     # This is the pose from which lidar points are provided.
     reference_pose = self.robot_mean
@@ -108,11 +131,9 @@ class MappingEnvironment:
     # if we did not match enough features we can't score the candidates
     if len(self.segment_associations) + len(self.corner_associations) < self.min_features:
       # if the map has enough features, then we are likely in a bad position so increase the variance
-      if len(self.map_segments) + len(self.map_corners) >= self.min_features:
-        self.robot_covariance[0][0] += self.increase_pose_variance
-        self.robot_covariance[1][1] += self.increase_pose_variance
-        self.robot_covariance[2][2] += self.increase_angle_variance
-        self.localized = False
+      self.add_noise(self.increase_pose_variance, self.increase_pose_variance, self.increase_angle_variance)
+      self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
+      self.localized = False
       return
 
     # Score each of the candidates
@@ -128,6 +149,14 @@ class MappingEnvironment:
                                     transform_function = transform_point, \
                                     scoring_function = point_to_point_distance, \
                                     sensor_noise = self.scoring_sensor_noise)
+
+    if max(self.weights) == 0.0:
+      # The scoring of all the features resulted in all candidates being elminated, so need to increase variance
+      self.add_noise(self.increase_pose_variance, self.increase_pose_variance, self.increase_angle_variance)
+      self.weights = normalize_weights(self.weights)
+      self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
+      self.localized = False
+      return
 
     # Normalize the weights
     self.weights = normalize_weights(self.weights)
@@ -155,7 +184,7 @@ class MappingEnvironment:
     self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
 
     # update whether we are localized based on the covariance
-    self.localized = self.is_localized_from_covariance(self.robot_covariance)
+    self.localized = self.localized and self.is_localized_from_covariance(self.robot_covariance)
 
 if __name__ == '__main__':
   print("done")
