@@ -6,9 +6,10 @@ import numpy
 import pickle
 
 from slam_geometry import normalize_angle
+from slam_plots import PlotData
+from slam_planner import plan_motion_from_lidar
+from slam_robot import SimulatedRobot
 from slam import Slam
-from robot import SimulatedRobot
-from plots import PlotData
 
 def save_map():
   segments = [
@@ -57,22 +58,25 @@ if __name__ == '__main__':
   fig1, (map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4) = \
     plt.subplots(5, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1]})
 
-  use_localize = True # should we localize or just run the robot motion
+  localize_steps = 10 # how many steps we should use for localizing on single lidar data set
   scale_points = False # should we adjust the number of particles for localization
   use_motion = True # should we inform mapping of robot motion
 
   def handle_robot():
     # Pick the movement direction and angle
-    move_distance = numpy.random.uniform(0.0, 10.0)
-    turn_angle = numpy.random.uniform(numpy.deg2rad(-3.0), numpy.deg2rad(10.0))
+    move_distance, turn_angle = plan_motion_from_lidar(robot.sense_environment())
+
+    # This woudl be random movement and angle
+    #move_distance = numpy.random.uniform(0.0, 10.0)
+    #turn_angle = numpy.random.uniform(numpy.deg2rad(-3.0), numpy.deg2rad(10.0))
 
     # Determine if we are moving or staying put, on large error do not move
-    if use_localize and not mapping.localized:
+    if localize_steps > 0 and not mapping.localized:
       move_distance = 0
       turn_angle = 0
 
     # if we want to play around with number of sample points
-    if use_localize and scale_points:
+    if localize_steps > 0 and scale_points:
       if mapping.localized and len(mapping.poses) > 10:
         mapping.reinitialize_particles(len(mapping.poses) - 1)
       elif not mapping.localized and len(mapping.poses) < 100:
@@ -88,8 +92,9 @@ if __name__ == '__main__':
                            distance_error = move_error, rotation_error = turn_error)
 
     # update the mapping invironment based on lidar data
-    if use_localize:
-      mapping.lidar_update(robot.sense_environment())
+    lidar_data = robot.sense_environment()
+    for _ in range(localize_steps):
+      mapping.lidar_update(lidar_data)
 
   def update(frame):
     if frame == 0:

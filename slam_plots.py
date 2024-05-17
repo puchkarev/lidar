@@ -21,6 +21,9 @@ class PlotData:
     self.vals_actual_pose_y = []
     self.vals_estimated_pose_x = []
     self.vals_estimated_pose_y = []
+    self.vals_estimated_pose_t = []
+    self.vals_move_speed = []
+    self.vals_turn_speed = []
 
   def collect_data(self, mapping, robot):
     if len(self.vals_frame_nums) == 0:
@@ -43,6 +46,18 @@ class PlotData:
       self.vals_total_corners.append(len(mapping.corner_associations) + len(mapping.new_corners))
       self.vals_estimated_pose_x.append(mapping.robot_mean[0])
       self.vals_estimated_pose_y.append(mapping.robot_mean[1])
+      self.vals_estimated_pose_t.append(mapping.robot_mean[2])
+      if len(self.vals_estimated_pose_x) < 2:
+        self.vals_move_speed.append(0.0)
+      else:
+        self.vals_move_speed.append(math.hypot(self.vals_estimated_pose_y[-1] - self.vals_estimated_pose_y[-2], \
+                                               self.vals_estimated_pose_x[-1] - self.vals_estimated_pose_x[-2]))
+      if len(self.vals_estimated_pose_t) < 2:
+        self.vals_turn_speed.append(0.0)
+      else:
+        self.vals_turn_speed.append(normalize_angle(self.vals_estimated_pose_t[-1] - \
+                                                    self.vals_estimated_pose_t[-2]))
+
       if mapping.localized:
         self.vals_localized.append(100)
       else:
@@ -72,6 +87,9 @@ class PlotData:
     tr(self.vals_actual_pose_y)
     tr(self.vals_estimated_pose_x)
     tr(self.vals_estimated_pose_y)
+    tr(self.vals_estimated_pose_t)
+    tr(self.vals_move_speed)
+    tr(self.vals_turn_speed)
 
   def plot_reality(self, robot, map_plot):
     # show the actual map that the robot understands
@@ -125,6 +143,9 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_pose_std_dev):
       graph_plot1.plot(self.vals_frame_nums, self.vals_pose_std_dev, 'r-')
       legend1.append("estimated_error")
+    if len(self.vals_frame_nums) == len(self.vals_move_speed):
+      graph_plot1.plot(self.vals_frame_nums, self.vals_move_speed)
+      legend1.append("move_speed")
     graph_plot1.legend(legend1)
 
     legend2 = []
@@ -134,6 +155,9 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_angle_std_dev):
       graph_plot2.plot(self.vals_frame_nums, self.vals_angle_std_dev, 'r-')
       legend2.append("estimated_error")
+    if len(self.vals_frame_nums) == len(self.vals_turn_speed):
+      graph_plot2.plot(self.vals_frame_nums, self.vals_turn_speed)
+      legend2.append("turn_speed")
     graph_plot2.legend(legend2)
 
     legend3 = []
@@ -159,3 +183,4 @@ class PlotData:
       graph_plot4.plot(self.vals_frame_nums, self.vals_particles)
       legend4.append("particles")
     graph_plot4.legend(legend4)
+
