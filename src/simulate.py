@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
   def update(frame):
     if frame == 0:
-      print("using map", mapping.map_segments.keys())
+      print("using map", mapping.map_segments)
       print("new_segments", mapping.new_segments)
 
     handle_robot()

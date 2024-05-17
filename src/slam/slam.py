@@ -27,16 +27,12 @@ class Slam:
     self.localized_angle_threshold = numpy.deg2rad(5.0)
 
     # Initialize the map segments
-    self.map_segments = {}
-    for segment in segments:
-      self.map_segments[segment] = {}
+    self.map_segments = segments
 
     # Extract the map corners
-    corners = detect_corners_from_segments(list(self.map_segments.keys()), \
+    corners = detect_corners_from_segments(list(self.map_segments), \
                                            angle_threshold = self.corner_angle_threshold)
-    self.map_corners = {}
-    for corner in corners:
-      self.map_corners[corner] = {}
+    self.map_corners = corners
 
     # Initialize the initial guess at the position
     self.robot_mean = initial_position
