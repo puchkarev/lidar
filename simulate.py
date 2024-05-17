@@ -27,7 +27,6 @@ def save_map():
 if __name__ == '__main__':
   # Define the environment
   segments = pickle.load(open('sample_map.pkl', 'rb'))
-  print("Using map", segments)
 
   # Initial position and parameters of the robot
   initial_position = [400.0, 250.0, numpy.deg2rad(35.0)]
@@ -60,6 +59,7 @@ if __name__ == '__main__':
 
   use_localize = True # should we localize or just run the robot motion
   scale_points = False # should we adjust the number of particles for localization
+  use_motion = True # should we inform mapping of robot motion
 
   def handle_robot():
     # Pick the movement direction and angle
@@ -83,14 +83,19 @@ if __name__ == '__main__':
       moved = robot.move(distance = move_distance, rotation = turn_angle)
       if not moved:
         move_distance = 0.0
-      mapping.move_robot(move_distance = move_distance, rotate_angle = turn_angle, \
-                                     distance_error = move_error, rotation_error = turn_error)
+      if use_motion:
+        mapping.move_robot(move_distance = move_distance, rotate_angle = turn_angle, \
+                           distance_error = move_error, rotation_error = turn_error)
 
     # update the mapping invironment based on lidar data
     if use_localize:
       mapping.lidar_update(robot.sense_environment())
 
   def update(frame):
+    if frame == 0:
+      print("using map", mapping.map_segments.keys())
+      print("new_segments", mapping.new_segments)
+
     handle_robot()
 
     plot_data.collect_data(mapping = mapping, robot = robot)

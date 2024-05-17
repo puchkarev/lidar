@@ -1,6 +1,11 @@
 # lidar
 Handling lidar data from rpilidar
 
+To run a simulation simply execute
+
+```python3 simulate.py```
+
+
 
 # Derivation
 Measurement of positions
