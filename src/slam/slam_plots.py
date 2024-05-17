@@ -2,7 +2,7 @@
 import math
 import numpy
 
-from slam_geometry import normalize_angle
+from slam.slam_geometry import *
 
 class PlotData:
   def __init__(self):

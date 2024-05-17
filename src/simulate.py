@@ -5,11 +5,11 @@ import matplotlib.animation as animation
 import numpy
 import pickle
 
-from slam_geometry import normalize_angle
-from slam_plots import PlotData
-from slam_planner import plan_motion_from_lidar
-from slam_robot import SimulatedRobot
-from slam import Slam
+from slam.slam_geometry import normalize_angle
+from slam.slam_plots import PlotData
+from slam.slam_planner import plan_motion_from_lidar
+from slam.slam_robot import SimulatedRobot
+from slam.slam import Slam
 
 def save_map():
   segments = [

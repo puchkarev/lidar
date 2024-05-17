@@ -1,6 +1,6 @@
 import numpy
 
-from slam_geometry import normalize_angle
+from slam.slam_geometry import *
 
 def plan_motion_from_lidar(lidar_data):
   fov = numpy.deg2rad(45.0)

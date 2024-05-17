@@ -1,8 +1,7 @@
 # Simulated Robot
 import numpy
 
-from slam_geometry import point_to_point_distance, normalize_angle, segment_segment_intersection, \
-                          segment_to_segment_distance, point_to_segment_distance
+from slam.slam_geometry import *
 
 class SimulatedRobot:
   def __init__(self, initial_position, segments, \

@@ -1,13 +1,10 @@
 import math
 import numpy
 
-from slam_association import associate_features
-from slam_geometry import polar_to_cartesian, transform_segment, transform_point, \
-                          point_to_point_distance, segment_endpoint_distance, normalize_angle
-from slam_localization import initialize_particles, compute_mean_and_covariance, \
-                              score_pose, normalize_weights
-from slam_segments import extract_segments
-from slam_corners import detect_corners_from_segments
+from slam.slam_association import *
+from slam.slam_geometry import *
+from slam.slam_features import *
+from slam.slam_localization import *
 
 class Slam:
   def __init__(self, initial_position, robot_covariance, num_points, segments):

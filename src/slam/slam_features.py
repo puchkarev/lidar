@@ -1,8 +1,7 @@
 import math
 import numpy
-import unittest
 
-from slam_geometry import point_to_line_distance
+from slam.slam_geometry import *
 
 def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
   """
@@ -52,26 +51,12 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
       segments.append((cartesian_points[si], cartesian_points[last]))
   return segments
 
-def segment_angle(segment):
-  return numpy.arctan2(segment[1][1] - segment[0][1], segment[1][0] - segment[0][0])
-
-class TestBasicMethods(unittest.TestCase):
-  def test_extract_segments(self):
-    numpy.testing.assert_allclose(numpy.array(extract_segments( \
-      cartesian_points = [(10, 10), (10, 11), (10, 12), (10, 13), (9, 11), (8, 9)], \
-      threshold = 1.0)),
-      numpy.array([((10.0, 10.0), (10, 13)), ((10, 13), (8, 9))]))
-
-  def test_segment_angle(self):
-    self.assertEqual(segment_angle(((0.0, 5.0), (1.0, 5.0))), 0.0)
-    self.assertEqual(segment_angle(((0.0, 10.0), (1.0, 10.0))), 0.0)
-
-    self.assertEqual(segment_angle(((0.0, 5.0), (0.0, 6.0))), math.pi / 2)
-    self.assertEqual(segment_angle(((1.0, 5.0), (1.0, 6.0))), math.pi / 2)
-
-    self.assertEqual(segment_angle(((0.0, 0.0), (1.0, 1.0))), math.pi / 4)
-    self.assertEqual(segment_angle(((0.0, 0.0), (1.0, -1.0))), -math.pi / 4)
-
-if __name__ == '__main__':
-  unittest.main()
-
+def detect_corners_from_segments(segments, angle_threshold = math.pi/6):
+  """ Detect corners from a list of segments based on the angle between them. """
+  corners = []
+  for i in range(len(segments)):
+    j = (i + 1) % len(segments)
+    angle = numpy.abs(normalize_angle(segment_angle(segments[i]) - segment_angle(segments[j])))
+    if angle > angle_threshold:
+      corners.append(line_line_intersection(segments[i], segments[j]))
+  return corners
