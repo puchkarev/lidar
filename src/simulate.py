@@ -98,8 +98,7 @@ if __name__ == '__main__':
 
   def update(frame):
     if frame == 0:
-      print("using map", mapping.map_segments)
-      print("new_segments", mapping.new_segments)
+      print(mapping.to_json())
 
     handle_robot()
 
@@ -117,5 +116,5 @@ if __name__ == '__main__':
     graph_plot4.cla()
     plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
 
-  ani = animation.FuncAnimation(fig1, update, frames=100, repeat=True, cache_frame_data=False, interval=100)
+  ani = animation.FuncAnimation(fig1, update, frames=20, repeat=True, cache_frame_data=False, interval=100)
   plt.show()

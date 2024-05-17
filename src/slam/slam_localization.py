@@ -38,7 +38,7 @@ def compute_mean_and_covariance(poses, weights):
     vec = [pose[0] - weighted_mean[0], pose[1] - weighted_mean[1], pose[2] - weighted_mean[2]]
     weighted_cov += weight * numpy.outer(vec, vec)
 
-  return weighted_mean, weighted_cov
+  return numpy.array(weighted_mean), numpy.array(weighted_cov)
 
 def score_pose(pose, reference_pose, feature_associations, transform_function, scoring_function, sensor_noise):
   """

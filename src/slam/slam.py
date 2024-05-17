@@ -1,5 +1,6 @@
 import math
 import numpy
+import json
 
 from slam.slam_association import *
 from slam.slam_geometry import *
@@ -35,8 +36,8 @@ class Slam:
     self.map_corners = corners
 
     # Initialize the initial guess at the position
-    self.robot_mean = initial_position
-    self.robot_covariance = robot_covariance
+    self.robot_mean = numpy.array(initial_position)
+    self.robot_covariance = numpy.array(robot_covariance)
     self.reinitialize_particles(num_points)
 
     # indicates whether we are localized
@@ -171,6 +172,19 @@ class Slam:
 
     # update whether we are localized based on the covariance
     self.localized = self.localized and self.is_localized_from_covariance(self.robot_covariance)
+
+  def to_json(self):
+    return json.dumps({ \
+      "localized": str(self.localized), \
+      "robot_mean": self.robot_mean.tolist(), \
+      "robot_covariance": self.robot_covariance.tolist(), \
+      "segment_associations": list(self.segment_associations), \
+      "new_segments": list(self.new_segments), \
+      "corner_associations": list(self.corner_associations), \
+      "new_corners": list(self.new_corners), \
+      "map_segments": list(self.map_segments), \
+      "map_corners": list(self.map_corners), \
+    })
 
 if __name__ == '__main__':
   print("done")
