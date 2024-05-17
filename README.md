@@ -9,7 +9,7 @@ The primary usage is in slam.py and example of usinge is in simulate.py
 
 The basics are:
 ```
-from slam import Slam
+from lidar.slam import Slam
 
 # Initialize the mapping with initial position (x, y, th_rad) and covariance matrix
 # number of points is how many candidates we will evaluate in distribution per step
