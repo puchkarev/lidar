@@ -40,7 +40,7 @@ class Slam:
   def set_map(self, segments):
     """Defines a new map"""
     self.map_segments = segments
-    self.map_corners = detect_corners_from_segments(list(self.map_segments), \
+    self.map_corners = detect_corners_from_segments(self.map_segments, \
                                                     angle_threshold = self.corner_angle_threshold)
 
   def set_position(self, initial_position, robot_covariance, num_points):
