@@ -7,17 +7,14 @@ from slam_geometry import polar_to_cartesian, transform_segment, transform_point
 from slam_localization import initialize_particles, compute_mean_and_covariance, \
                               score_pose, normalize_weights
 from slam_segments import extract_segments
-from slam_corners import detect_corners_from_segments, cluster_corners
+from slam_corners import detect_corners_from_segments
 
-class MappingEnvironment:
+class Slam:
   def __init__(self, initial_position, robot_covariance, num_points, segments):
     # Configuration options
     self.segment_distance_threshold = 10.0 # minimum distance between lidar points and the line segment
     self.segment_minimum_points = 5 # minimum points for segment to be considered valid
     self.corner_angle_threshold = numpy.deg2rad(30.0) # above this angle we look for corners
-
-    self.corner_cluster_eps = 0.5 # eps for corner clustering
-    self.corner_cluster_samples = 1 # minimum number of samples for corner clustering
 
     self.min_features = 3 # minimum number of features needed to localize
 
@@ -40,7 +37,6 @@ class MappingEnvironment:
     # Extract the map corners
     corners = detect_corners_from_segments(list(self.map_segments.keys()), \
                                            angle_threshold = self.corner_angle_threshold)
-    corners = cluster_corners(corners, eps = self.corner_cluster_eps, min_samples = self.corner_cluster_samples)
     self.map_corners = {}
     for corner in corners:
       self.map_corners[corner] = {}
@@ -99,15 +95,12 @@ class MappingEnvironment:
                                      min_points = self.segment_minimum_points)
     seen_corners = detect_corners_from_segments(seen_segments, angle_threshold = self.corner_angle_threshold)
 
-    clustered_corners = cluster_corners(seen_corners, eps = self.corner_cluster_eps,
-                                        min_samples = self.corner_cluster_samples)
-
     # Here we attempt to find a pose from which association seems more reasonable
     association_pose = self.robot_mean
     self.segment_associations = []
     self.new_segments = seen_segments
     self.corner_associations = []
-    self.new_corners = clustered_corners
+    self.new_corners = seen_corners
     if len(self.map_segments) + len(self.map_corners) >= self.min_features:
       for pose in [self.robot_mean] + self.poses + [self.robot_mean]:
         association_pose = pose
@@ -119,7 +112,7 @@ class MappingEnvironment:
           scoring_function = segment_endpoint_distance, \
           threshold = self.segment_association_threshold)
         self.corner_associations, self.new_corners, _ = associate_features( \
-          new_features = [transform_point(p, reference_pose, association_pose) for p in clustered_corners], \
+          new_features = [transform_point(p, reference_pose, association_pose) for p in seen_corners], \
           map_features = self.map_corners, \
           scoring_function = point_to_point_distance, \
           threshold = self.corner_association_threshold)
