@@ -20,9 +20,8 @@ def initialize_particles(num_particles, initial_pose, \
   """
   poses = []
   weights = []
-  rng = numpy.random.default_rng()
   for _ in range(num_particles):
-    noisy_pose = rng.multivariate_normal(initial_pose, pose_noise_cov)
+    noisy_pose = numpy.random.multivariate_normal(initial_pose, pose_noise_cov)
     poses.append(noisy_pose)
     weights.append(1.0 / num_particles)
   return poses, weights
