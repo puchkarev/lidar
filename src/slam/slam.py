@@ -27,17 +27,10 @@ class Slam:
     self.localized_distance_threshold = 15.0
     self.localized_angle_threshold = numpy.deg2rad(5.0)
 
-    # Initialize the map segments
     self.set_map(segments)
+    self.set_position(initial_position, robot_covariance, num_points)
 
-    # Initialize the initial guess at the position
-    self.robot_mean = numpy.array(initial_position)
-    self.robot_covariance = numpy.array(robot_covariance)
-    self.reinitialize_particles(num_points)
-
-    # indicates whether we are localized
-    self.localized = self.is_localized_from_covariance(self.robot_covariance)
-
+    # Things which will be computed and populated later
     self.cartesian_points = []
     self.segment_associations = []
     self.new_segments = []
@@ -45,12 +38,17 @@ class Slam:
     self.new_corners = []
 
   def set_map(self, segments):
-    # Initialize the map segments
+    """Defines a new map"""
     self.map_segments = segments
-
-    # Extract the map corners
     self.map_corners = detect_corners_from_segments(list(self.map_segments), \
                                                     angle_threshold = self.corner_angle_threshold)
+
+  def set_position(self, initial_position, robot_covariance, num_points):
+    """Overwrites the current position"""
+    self.robot_mean = numpy.array(initial_position)
+    self.robot_covariance = numpy.array(robot_covariance)
+    self.localized = self.is_localized_from_covariance(self.robot_covariance)
+    self.reinitialize_particles(num_points)
 
   # Determines if we are localized purely based on the covariance matrix
   def is_localized_from_covariance(self, robot_covariance):
