@@ -28,10 +28,14 @@ def compute_mean_and_covariance(poses, weights):
   """Computes the mean position and covariance based on the poses and weights"""
 
   weighted_mean = [0.0, 0.0, 0.0]
+  cos_mean = 0.0
+  sin_mean = 0.0
   for pose, weight in zip(poses, weights):
     weighted_mean[0] += pose[0] * weight
     weighted_mean[1] += pose[1] * weight
-    weighted_mean[2] += pose[2] * weight
+    cos_mean += numpy.cos(pose[2]) * weight
+    sin_mean += numpy.sin(pose[2]) * weight
+  weighted_mean[2] = numpy.arctan2(sin_mean, cos_mean)
 
   weighted_cov = numpy.zeros((3, 3))
   for pose, weight in zip(poses, weights):
