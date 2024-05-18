@@ -1,6 +1,7 @@
+import json
 import math
 import numpy
-import json
+import types
 
 from slam.slam_association import *
 from slam.slam_geometry import *
@@ -25,7 +26,7 @@ def DefaultSlamConfig():
 class Slam:
   def __init__(self, initial_position, robot_covariance, num_points, segments, config = DefaultSlamConfig()):
     # Initial state of the system
-    self.config = config
+    self.set_config(config)
     self.set_map(segments)
     self.set_position(initial_position, robot_covariance, num_points)
 
@@ -35,6 +36,28 @@ class Slam:
     self.new_segments = []
     self.corner_associations = []
     self.new_corners = []
+
+  def set_config(self, config):
+    """Sets the new configuration of the system. Returns a non empty string of errors if any"""
+    default_config = DefaultSlamConfig()
+
+    errors = []
+    for key in default_config.keys():
+      if key not in config:
+        errors.append(str(key) + " missing from config")
+      elif type(config[key]) is not type(default_config[key]):
+        error.append(str(key) + " should be of type " + str(type(default_config[key])) + \
+                     " but is of type " + str(type(config[key])))
+
+    for key in config.keys():
+      if key not in default_config:
+        errors.append(str(key) + " should not be in the config")
+
+    if len(errors) > 0:
+      return ', '.join(errors)
+
+    self.config = config
+    return ""
 
   def set_map(self, segments):
     """Defines a new map"""
@@ -49,19 +72,20 @@ class Slam:
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
     self.reinitialize_particles(num_points)
 
-  # Determines if we are localized purely based on the covariance matrix
   def is_localized_from_covariance(self, robot_covariance):
+    """Determines if we are localized purely based on the covariance matrix"""
     return robot_covariance[0][0] < self.config["LocalizedDistanceThreshold"] and \
            robot_covariance[1][1] < self.config["LocalizedDistanceThreshold"] and \
            robot_covariance[2][2] < self.config["LocalizedAngleThreshold"]
 
-  # Reinitializes the particles and may change the number of particles used.
   def reinitialize_particles(self, num_particles):
+    """Reinitializes the particles and may change the number of particles used."""
     self.poses, self.weights = initialize_particles(num_particles = num_particles, \
                                                     initial_pose = self.robot_mean, \
                                                     pose_noise_cov = self.robot_covariance)
 
   def add_noise(self, x_error, y_error, rotation_error):
+    """Adds specific amount of noise to the pose estimation"""
     for i, p in enumerate(self.poses):
       new_pose = [p[0] + numpy.random.normal(0, x_error), \
                   p[1] + numpy.random.normal(0, y_error), \
@@ -75,6 +99,7 @@ class Slam:
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
 
   def lidar_update(self, lidar_data):
+    """Informs slam of a more recent lidar update"""
     # We first draw new samples based on the distribution
     self.reinitialize_particles(len(self.poses))
 
@@ -157,6 +182,7 @@ class Slam:
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
 
   def move_robot(self, move_distance, rotate_angle, distance_error, rotation_error):
+    """Informs slam of the robot movement"""
     best_guess = [move_distance, rotate_angle]
     for i, p in enumerate(self.poses):
       move_error = numpy.random.normal(0, distance_error)
@@ -176,6 +202,7 @@ class Slam:
     self.localized = self.localized and self.is_localized_from_covariance(self.robot_covariance)
 
   def to_json(self):
+    """Convers the current system measurements to json"""
     return json.dumps({ \
       "localized": str(self.localized), \
       "robot_mean": self.robot_mean.tolist(), \
@@ -186,6 +213,7 @@ class Slam:
       "new_corners": list(self.new_corners), \
       "map_segments": list(self.map_segments), \
       "map_corners": list(self.map_corners), \
+      "config": self.config, \
     })
 
 if __name__ == '__main__':
