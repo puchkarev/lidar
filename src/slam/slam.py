@@ -211,6 +211,14 @@ class Slam:
 
   def lidar_update(self, lidar_data):
     """Informs slam of a more recent lidar update"""
+
+    # Validate the input
+    if len(lidar_data) < 3:
+      return "Not enough points"
+    for l in lidar_data:
+      if len(l) != 3:
+        return "Invalid points"
+
     # Extract the features using mean pose as the reference pose
     self.lidar_points = lidar_data
     self.extract_features(lidar_data, self.robot_mean)
