@@ -21,6 +21,7 @@ def DefaultSlamConfig():
     "ScoringSensorNoise": 50.0, \
     "LocalizedDistanceThreshold": 15.0, \
     "LocalizedAngleThreshold": numpy.deg2rad(5.0), \
+    "Localizing": 1, \
   }
 
 class Slam:
@@ -31,7 +32,14 @@ class Slam:
     self.set_position(initial_position, robot_covariance, num_points)
 
     # Things which will be computed and populated later
+    self.lidar_points = []
+
+    self.reference_pose = self.robot_mean
     self.cartesian_points = []
+    self.seen_segments = []
+    self.seen_corners = []
+
+    self.association_pose = self.robot_mean
     self.segment_associations = []
     self.new_segments = []
     self.corner_associations = []
@@ -98,73 +106,93 @@ class Slam:
     # update whether we are localized based on the covariance
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
 
-  def lidar_update(self, lidar_data):
-    """Informs slam of a more recent lidar update"""
-    # We first draw new samples based on the distribution
-    self.reinitialize_particles(len(self.poses))
+  def extract_features(self, lidar_data, reference_pose):
+    """Extracts the features from the lidar data using the reference pose"""
 
     # This is the pose from which lidar points are provided.
-    reference_pose = self.robot_mean
+    self.reference_pose = reference_pose
 
     # convert the lidar data into cartesian data
     self.cartesian_points = polar_to_cartesian(lidar_data, reference_pose)
 
     # Extract the features
-    seen_segments = extract_segments(self.cartesian_points, threshold = self.config["SegmentDistanceThreshold"], \
-                                     min_points = self.config["SegmentMinimumPoints"])
-    seen_corners = detect_corners_from_segments(seen_segments, angle_threshold = self.config["CornerAngleThreshold"])
+    self.seen_segments = extract_segments(self.cartesian_points, \
+                                          threshold = self.config["SegmentDistanceThreshold"], \
+                                          min_points = self.config["SegmentMinimumPoints"])
+    self.seen_corners = detect_corners_from_segments(self.seen_segments, \
+                                                     angle_threshold = self.config["CornerAngleThreshold"])
 
-    # Here we attempt to find a pose from which association seems more reasonable
-    association_pose = self.robot_mean
+  def associate_features(self, reference_pose, seen_segments, seen_corners):
+    """Associate the features to the reference map"""
+
+    # We first assume that no association is possibe to handle the case with
+    # an incomplete map.
+    self.association_pose = reference_pose
     self.segment_associations = []
     self.new_segments = seen_segments
     self.corner_associations = []
     self.new_corners = seen_corners
-    if len(self.map_segments) + len(self.map_corners) >= self.config["MinFeaturesToLocalize"]:
-      for pose in [self.robot_mean] + self.poses + [self.robot_mean]:
-        association_pose = pose
 
-        # Perform assocation to the map features
-        self.segment_associations, self.new_segments, _ = associate_features( \
-          new_features = [transform_segment(s, reference_pose, association_pose) for s in seen_segments], \
-          map_features = self.map_segments, \
-          scoring_function = segment_endpoint_distance, \
-          threshold = self.config["SegmentAssociationThreshold"])
-        self.corner_associations, self.new_corners, _ = associate_features( \
-          new_features = [transform_point(p, reference_pose, association_pose) for p in seen_corners], \
-          map_features = self.map_corners, \
-          scoring_function = point_to_point_distance, \
-          threshold = self.config["CornerAssociationThreshold"])
-
-        # We need some minimum feature set
-        if len(self.segment_associations) + len(self.corner_associations) >= self.config["MinFeaturesToLocalize"]:
-          break
-
-    # if we did not match enough features we can't score the candidates
-    if len(self.segment_associations) + len(self.corner_associations) < self.config["MinFeaturesToLocalize"]:
-      # if the map has enough features, then we are likely in a bad position so increase the variance
-      self.add_noise(self.config["IncreasePoseVariance"], self.config["IncreasePoseVariance"], \
-                     self.config["IncreaseAngleVariance"])
-      self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
-      self.localized = False
+    if len(self.map_segments) + len(self.map_corners) < self.config["MinFeaturesToLocalize"]:
       return
+
+    # sort the poses by weight (and add the mean as the best possible candidate)
+    scored_poses = [(self.robot_mean, 1.0)] + [a for a in zip(self.poses, self.weights)]
+    scored_poses.sort(key = lambda x: x[1], reverse = True)
+
+    for pose, weight in scored_poses:
+      # we are not interested in any candidates which have been previously eliminated
+      if weight <= 0.0:
+        continue
+
+      # Perform assocation to the map features
+      self.association_pose = pose
+      self.segment_associations, self.new_segments, _ = associate_features( \
+        new_features = [transform_segment(s, reference_pose, pose) for s in seen_segments], \
+        map_features = self.map_segments, \
+        scoring_function = segment_endpoint_distance, \
+        threshold = self.config["SegmentAssociationThreshold"])
+      self.corner_associations, self.new_corners, _ = associate_features( \
+        new_features = [transform_point(p, reference_pose, pose) for p in seen_corners], \
+        map_features = self.map_corners, \
+        scoring_function = point_to_point_distance, \
+         threshold = self.config["CornerAssociationThreshold"])
+
+      # Once we match enough features we can exit
+      if len(self.segment_associations) + len(self.corner_associations) >= self.config["MinFeaturesToLocalize"]:
+        break
+
+  def localize(self, association_pose, segment_associations, corner_associations):
+    # if we did not match enough features we can't score the candidates
+    if len(segment_associations) + len(corner_associations) < self.config["MinFeaturesToLocalize"]:
+      # if the map has enough features, then we are likely in a bad position so increase the variance
+      if len(self.map_segments) + len(self.map_corners) >= self.config["MinFeaturesToLocalize"]:
+        self.add_noise(self.config["IncreasePoseVariance"], self.config["IncreasePoseVariance"], \
+                       self.config["IncreaseAngleVariance"])
+        self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
+        self.localized = False
+      return
+
+    # Draw new samples based on the distribution (maybe should keep the best previous candidates,
+    # or possibly just resample the candidates which scored 0's.
+    self.reinitialize_particles(len(self.poses))
 
     # Score each of the candidates
     for i, pose in enumerate(self.poses):
       self.weights[i] = 1.0
       self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
-                                    feature_associations = self.segment_associations, \
+                                    feature_associations = segment_associations, \
                                     transform_function = transform_segment, \
                                     scoring_function = segment_endpoint_distance, \
                                     sensor_noise = self.config["ScoringSensorNoise"])
       self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
-                                    feature_associations = self.corner_associations, \
+                                    feature_associations = corner_associations, \
                                     transform_function = transform_point, \
                                     scoring_function = point_to_point_distance, \
                                     sensor_noise = self.config["ScoringSensorNoise"])
 
+    # If all the candidates are bad, we increase the variance.
     if max(self.weights) == 0.0:
-      # The scoring of all the features resulted in all candidates being elminated, so need to increase variance
       self.add_noise(self.config["IncreasePoseVariance"], self.config["IncreasePoseVariance"], \
                      self.config["IncreaseAngleVariance"])
       self.weights = normalize_weights(self.weights)
@@ -180,6 +208,19 @@ class Slam:
 
     # update whether we are localized based on the covariance
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
+
+  def lidar_update(self, lidar_data):
+    """Informs slam of a more recent lidar update"""
+    # Extract the features using mean pose as the reference pose
+    self.lidar_points = lidar_data
+    self.extract_features(lidar_data, self.robot_mean)
+
+    # Associate the features to the map
+    self.associate_features(self.reference_pose, self.seen_segments, self.seen_corners)
+
+    # Perform localization
+    if self.config["Localizing"] == 1:
+      self.localize(self.association_pose, self.segment_associations, self.corner_associations)
 
   def move_robot(self, move_distance, rotate_angle, distance_error, rotation_error):
     """Informs slam of the robot movement"""
@@ -207,6 +248,12 @@ class Slam:
       "localized": str(self.localized), \
       "robot_mean": self.robot_mean.tolist(), \
       "robot_covariance": self.robot_covariance.tolist(), \
+      "lidar_points": list(self.lidar_points), \
+      "cartesian_points": list(self.cartesian_points), \
+      "reference_pose": self.reference_pose.tolist(), \
+      "seen_segments": list(self.seen_segments), \
+      "seen_corners": list(self.seen_segments), \
+      "association_pose": self.association_pose.tolist(), \
       "segment_associations": list(self.segment_associations), \
       "new_segments": list(self.new_segments), \
       "corner_associations": list(self.corner_associations), \
