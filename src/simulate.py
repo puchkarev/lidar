@@ -1,4 +1,5 @@
 # Simulation
+import sys
 import math
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -25,7 +26,7 @@ def save_map():
   with open('sample_map.pkl', 'wb') as f:
     pickle.dump(segments, f)
 
-if __name__ == '__main__':
+def run(repeat):
   # Define the environment
   segments = pickle.load(open('sample_map.pkl', 'rb'))
 
@@ -43,7 +44,7 @@ if __name__ == '__main__':
                          angle_noise_std_dev = turn_error, \
                          sensor_noise = sensor_noise, \
                          sensor_angle_std_dev = sensor_angle_std_dev, \
-                         num_points = 100, \
+                         num_points = 200, \
                          field_of_view = numpy.deg2rad(360.0), \
                          max_distance = 1000.0)
 
@@ -121,5 +122,12 @@ if __name__ == '__main__':
     graph_plot4.grid()
     plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
 
-  ani = animation.FuncAnimation(fig1, update, frames=20, repeat=True, cache_frame_data=False, interval=100)
+  ani = animation.FuncAnimation(fig1, update, frames=100, repeat=repeat, cache_frame_data=False, interval=100)
   plt.show()
+
+if __name__ == '__main__':
+  if 'profile' in sys.argv:
+    import cProfile
+    cProfile.run('run(False)')
+  else:
+    run(True)

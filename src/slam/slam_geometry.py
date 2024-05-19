@@ -49,6 +49,35 @@ def projected_point_on_segment(point, segment):
   dot = v1_norm[0] * v2[0] + v1_norm[1] * v2[1]
   return dot / v1_len
 
+def line_fit(points):
+  x = [p[0] for p in points]
+  y = [p[1] for p in points]
+
+  # Center of the distribution
+  x_mean = numpy.mean(x)
+  y_mean = numpy.mean(y)
+
+  # Place the points around the origin
+  x_centered = x - x_mean
+  y_centered = y - y_mean
+
+  # Compute covariance matrix
+  data = numpy.vstack([x_centered, y_centered])
+  cov_matrix = numpy.cov(data)
+
+  # Eigendecomposition
+  eigenvalues, eigenvectors = numpy.linalg.eig(cov_matrix)
+
+  # Principal eigenvector
+  principal_eigenvector = eigenvectors[:, numpy.argmax(eigenvalues)]
+
+  a, b = principal_eigenvector
+  c = -(a * x_mean + b * y_mean)
+
+  # a * x + b * y + c = 0
+  # the direction vector is (a, b) intersects (x_mean, y_mean)
+  return a, b, c, x_mean, y_mean
+
 def point_to_segment_distance(point, segment):
   """Returns the distance between the point and the segment"""
   dot = projected_point_on_segment(point, segment)
