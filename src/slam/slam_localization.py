@@ -16,12 +16,14 @@ def initialize_particles(num_particles, initial_pose, \
   Returns:
   - List of poses and weights
   """
-  poses = []
-  weights = []
-  for _ in range(num_particles):
-    noisy_pose = numpy.random.multivariate_normal(initial_pose, pose_noise_cov)
-    poses.append(noisy_pose)
-    weights.append(1.0 / num_particles)
+  weights = [1.0 / num_particles] * num_particles
+  poses = numpy.random.multivariate_normal(initial_pose, pose_noise_cov, num_particles)
+#  poses = []
+#  weights = []
+#  for _ in range(num_particles):
+#    noisy_pose = numpy.random.multivariate_normal(initial_pose, pose_noise_cov)
+#    poses.append(noisy_pose)
+#    weights.append(1.0 / num_particles]
   return poses, weights
 
 def compute_mean_and_covariance(poses, weights):

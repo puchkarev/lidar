@@ -22,7 +22,7 @@ def segment_endpoint_distance(segment1, segment2):
 def point_to_line_distance(point, line):
   """Returns the distance between the point and the line"""
   # Length of the line segment
-  segment_length = math.hypot(line[1][1] - line[0][1], line[1][0] - line[0][0])
+  segment_length = point_to_point_distance(line[0], line[1])
   if segment_length <= 0:
     # if segment length is 0, then the line is arebitrary so we can always draw a line
     # to point that will cross it.
@@ -34,20 +34,24 @@ def point_to_line_distance(point, line):
   # so h = 2 * A / b
   return double_triangle_area / segment_length
 
-def projected_point_on_segment(point, segment):
+def projected_point_on_segment(point, segment, segment_len = None):
   """Returns the projection of a point onto the segment"""
   # Make v1 (as the segment) and v2 as the segment[0] to point
   v1 = (segment[1][0] - segment[0][0], segment[1][1] - segment[0][1])
   v2 = (point[0] - segment[0][0], point[1] - segment[0][1])
 
-  v1_len = math.hypot(v1[0], v1[1])
-  if v1_len <= 0.0:
+  if not segment_len:
+    segment_len = point_to_point_distance((0, 0), (v1[0], v1[1]))
+  if segment_len <= 0.0:
     return math.inf
 
+  # compute the division only once
+  segment_len_inv = 1.0 / segment_len
+
   # Project v2 onto v1 normalized.
-  v1_norm = (v1[0] / v1_len, v1[1] / v1_len)
+  v1_norm = (v1[0] * segment_len_inv, v1[1] * segment_len_inv)
   dot = v1_norm[0] * v2[0] + v1_norm[1] * v2[1]
-  return dot / v1_len
+  return dot * segment_len_inv
 
 def line_fit(points):
   x = [p[0] for p in points]
@@ -85,9 +89,9 @@ def point_to_segment_distance(point, segment):
   # return distances to edges of segment if the point does not project onto line,
   # and if it does measure the distance from the projected point.
   if dot <= 0.0:
-    return math.hypot(point[0] - segment[0][0], point[1] - segment[0][1])
+    return point_to_point_distance(point, segment[0])
   elif dot >= 1.0:
-    return math.hypot(point[0] - segment[1][0], point[1] - segment[1][1])
+    return point_to_point_distance(point, segment[1])
   else:
     return point_to_line_distance(point, segment)
 
@@ -169,7 +173,7 @@ def polar_to_cartesian(lidar_data, pose):
 
 def transform_point(point, original_pose, new_pose):
   """Transforms a point as seen from some original pose, to a point seen from the new pose"""
-  distance = math.hypot(point[1] - original_pose[1], point[0] - original_pose[0])
+  distance = point_to_point_distance(point, original_pose)
   angle = numpy.arctan2(point[1] - original_pose[1], point[0] - original_pose[0]) - original_pose[2]
   global_angle = angle + new_pose[2]
   return (new_pose[0] + distance * numpy.cos(global_angle), new_pose[1] + distance * numpy.sin(global_angle))

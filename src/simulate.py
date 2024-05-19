@@ -60,7 +60,7 @@ def run(repeat):
     plt.subplots(5, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1]})
   plt.subplots_adjust(wspace=0, hspace=0)
 
-  localize_steps = 10 # how many steps we should use for localizing on single lidar data set
+  localize_steps = 1 # how many steps we should use for localizing on single lidar data set
   scale_points = False # should we adjust the number of particles for localization
   use_motion = True # should we inform mapping of robot motion
 
@@ -122,7 +122,7 @@ def run(repeat):
     graph_plot4.grid()
     plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
 
-  ani = animation.FuncAnimation(fig1, update, frames=100, repeat=repeat, cache_frame_data=False, interval=100)
+  ani = animation.FuncAnimation(fig1, update, frames=100, repeat=repeat, cache_frame_data=False, interval=10)
   plt.show()
 
 if __name__ == '__main__':

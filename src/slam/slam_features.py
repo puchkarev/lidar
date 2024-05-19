@@ -24,10 +24,20 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
     distance = 0
     while ix != (end % count):
       distance = max(distance, point_to_line_distance(cartesian_points[ix % count], \
-                                                              (cartesian_points[start % count], \
-                                                               cartesian_points[end % count])))
+                                                      (cartesian_points[start % count], \
+                                                       cartesian_points[end % count])))
       ix = (ix + 1) % count
     return distance
+
+  def extendable(start, end):
+    if (end - start + 1) < 5:
+      return max_distance(start, end) < threshold
+
+    # for a line which is long enough only check the end point as compared to a line to the midpoint
+    mid = int((start + end) / 2)
+    return point_to_line_distance(cartesian_points[end % count], \
+                                  (cartesian_points[start % count], \
+                                   cartesian_points[mid % count])) < threshold
 
   si = 0
   ei = 2
@@ -39,7 +49,7 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
     # - all intermediate points must be within threshold distance
     if (len(segment_ix) == 0 or (ei % count) != segment_ix[0][0]) and \
        (ei - si) < count and \
-       max_distance(si, ei) < threshold:
+       extendable(si, ei):
       ei += 1
       continue
 
