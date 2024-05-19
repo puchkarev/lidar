@@ -57,6 +57,7 @@ if __name__ == '__main__':
   plot_data = PlotData()
   fig1, (map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4) = \
     plt.subplots(5, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1]})
+  plt.subplots_adjust(wspace=0, hspace=0)
 
   localize_steps = 10 # how many steps we should use for localizing on single lidar data set
   scale_points = False # should we adjust the number of particles for localization
@@ -111,9 +112,13 @@ if __name__ == '__main__':
     plot_data.plot_mapping(mapping = mapping, map_plot = map_plot)
 
     graph_plot1.cla()
+    graph_plot1.grid()
     graph_plot2.cla()
+    graph_plot2.grid()
     graph_plot3.cla()
+    graph_plot3.grid()
     graph_plot4.cla()
+    graph_plot4.grid()
     plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
 
   ani = animation.FuncAnimation(fig1, update, frames=20, repeat=True, cache_frame_data=False, interval=100)

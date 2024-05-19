@@ -146,7 +146,7 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_move_speed):
       graph_plot1.plot(self.vals_frame_nums, self.vals_move_speed)
       legend1.append("move_speed")
-    graph_plot1.legend(legend1)
+    graph_plot1.legend(legend1, loc='upper left')
 
     legend2 = []
     if len(self.vals_frame_nums) == len(self.vals_angle_error):
@@ -158,7 +158,7 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_turn_speed):
       graph_plot2.plot(self.vals_frame_nums, self.vals_turn_speed)
       legend2.append("turn_speed")
-    graph_plot2.legend(legend2)
+    graph_plot2.legend(legend2, loc='upper left')
 
     legend3 = []
     if len(self.vals_frame_nums) == len(self.vals_matched_segments):
@@ -173,7 +173,7 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_total_corners):
       graph_plot3.plot(self.vals_frame_nums, self.vals_total_corners)
       legend3.append("total_corners")
-    graph_plot3.legend(legend3)
+    graph_plot3.legend(legend3, loc='upper left')
 
     legend4 = []
     if len(self.vals_frame_nums) == len(self.vals_localized):
@@ -182,5 +182,5 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_particles):
       graph_plot4.plot(self.vals_frame_nums, self.vals_particles)
       legend4.append("particles")
-    graph_plot4.legend(legend4)
+    graph_plot4.legend(legend4, loc='upper left')
 

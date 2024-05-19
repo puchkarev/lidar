@@ -14,8 +14,8 @@ def DefaultSlamConfig():
     "SegmentMinimumPoints": 5, \
     "CornerAngleThreshold": numpy.deg2rad(30.0), \
     "MinFeaturesToLocalize": 3, \
-    "SegmentAssociationThreshold": 50.0, \
-    "CornerAssociationThreshold": 10.0, \
+    "SegmentAssociationThreshold": 80.0, \
+    "CornerAssociationThreshold": 50.0, \
     "IncreasePoseVariance": 2.0, \
     "IncreaseAngleVariance": numpy.deg2rad(5.0), \
     "ScoringSensorNoise": 50.0, \
@@ -137,7 +137,7 @@ class Slam:
       return
 
     # sort the poses by weight (and add the mean as the best possible candidate)
-    scored_poses = [(self.robot_mean, 1.0)] + [a for a in zip(self.poses, self.weights)]
+    scored_poses = [(self.robot_mean, 1.0)] # + [a for a in zip(self.poses, self.weights)]
     scored_poses.sort(key = lambda x: x[1], reverse = True)
 
     for pose, weight in scored_poses:

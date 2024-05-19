@@ -19,36 +19,48 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
   segments = []
 
   count = len(cartesian_points)
+
+  def max_distance(start, end):
+    ix = (start + 1) % count
+    distance = 0
+    while ix != (end % count):
+      distance = max(distance, point_to_line_distance(cartesian_points[ix % count], \
+                                                              (cartesian_points[start % count], \
+                                                               cartesian_points[end % count])))
+      ix = (ix + 1) % count
+    return distance
+
   last = count - 1
   si = 0
   ei = 2
-  first_segment_start = -1
+  first_segment_ix = [-1, -1]
+  last_segment_ix = [-1, -1]
   while si <= last:
-    # measure the maximum distance to the intermediate points
-    max_distance = 0
-    for ix in range(si + 1, ei):
-      max_distance = max(max_distance, point_to_line_distance(cartesian_points[ix % count], \
-                                                              (cartesian_points[si % count], \
-                                                               cartesian_points[ei % count])))
-      if max_distance >= threshold:
-        break
-
     # If possible to extend the segment we extend it
-    if max_distance < threshold and (ei - si) < count and (ei % count) != first_segment_start:
+    if max_distance(si, ei) < threshold and (ei - si) < count and (ei % count) != first_segment_ix[0]:
       ei += 1
       continue
 
     # segment must have at the minium number of points to be valid.
     if (ei - si) >= min_points:
-      if first_segment_start < 0:
-        first_segment_start = (si % count)
-      segments.append((cartesian_points[si % count], cartesian_points[(ei - 1) % count]))
+      start_ix = si % count
+      end_ix = (ei - 1) % count
+      last_segment_ix = [start_ix, end_ix]
+      if first_segment_ix[0] < 0:
+        first_segment_ix = [start_ix, end_ix]
+      segments.append((cartesian_points[start_ix], cartesian_points[end_ix]))
 
     # the start of next segment can start and the end of the previous one.
     si = ei - 1
-    if (ei % count) == first_segment_start:
+    if (ei % count) == first_segment_ix[0]:
       break
     ei += 1
+
+  # check if we can combine the first and last segments
+  if last_segment_ix[1] == first_segment_ix[0] and first_segment_ix[0] >= 0:
+    if max_distance(last_segment_ix[0], first_segment_ix[1]) < threshold:
+      segments[0] = (cartesian_points[last_segment_ix[0]], caretesian_points[first_segment_ix[1]])
+      segments.pop()
 
   return segments
 
