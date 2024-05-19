@@ -146,7 +146,7 @@ class Slam:
         continue
 
       # Perform assocation to the map features
-      self.association_pose = pose
+      self.association_pose = numpy.array(pose)
       self.segment_associations, self.new_segments, _ = associate_features( \
         new_features = [transform_segment(s, reference_pose, pose) for s in seen_segments], \
         map_features = self.map_segments, \
