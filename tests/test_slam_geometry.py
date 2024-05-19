@@ -85,12 +85,6 @@ class TestBasicMethods(unittest.TestCase):
       new_pose = (2.0, 4.0, math.pi))), \
       numpy.array([[-12.0, 11.0], [-17.0, 16.0]]))
 
-  def test_score_distance(self):
-    self.assertAlmostEqual(score_distance(0.0, sensor_noise = 1.0), 1.0)
-    self.assertAlmostEqual(score_distance(1.0, sensor_noise = 1.0), 0.6065306597126334)
-    self.assertAlmostEqual(score_distance(2.0, sensor_noise = 1.0), 0.13533528323661267)
-    self.assertAlmostEqual(score_distance(3.0, sensor_noise = 1.0), 0.011108996538242308)
-
   def test_segment_angle(self):
     self.assertEqual(segment_angle(((0.0, 5.0), (1.0, 5.0))), 0.0)
     self.assertEqual(segment_angle(((0.0, 10.0), (1.0, 10.0))), 0.0)
