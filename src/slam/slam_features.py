@@ -22,6 +22,7 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
   last = count - 1
   si = 0
   ei = 2
+  first_segment_start = -1
   while si <= last:
     # measure the maximum distance to the intermediate points
     max_distance = 0
@@ -33,17 +34,23 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
         break
 
     # If possible to extend the segment we extend it
-    if max_distance < threshold and (ei - si) < count:
+    if max_distance < threshold and (ei - si) < count and (ei % count) != first_segment_start:
       ei += 1
       continue
 
     # segment must have at the minium number of points to be valid.
     if (ei - si) >= min_points:
+      if first_segment_start < 0:
+        first_segment_start = (si % count)
       segments.append((cartesian_points[si % count], cartesian_points[(ei - 1) % count]))
 
     # the start of next segment can start and the end of the previous one.
     si = ei - 1
+    if (ei % count) == first_segment_start:
+      break
     ei += 1
+
+  print(segments)
 
   return segments
 

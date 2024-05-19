@@ -155,7 +155,3 @@ def transform_segment(segment, original_pose, new_pose):
 def segment_angle(segment):
   return numpy.arctan2(segment[1][1] - segment[0][1], segment[1][0] - segment[0][0])
 
-def score_distance(distance, sensor_noise):
-  """Function that converts a distance between measurements and noise value to a likelihood"""
-  return numpy.exp(-0.5 * ( distance ** 2 / sensor_noise ** 2) )
-
