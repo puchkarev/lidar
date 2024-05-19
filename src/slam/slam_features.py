@@ -18,37 +18,33 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
   """
   segments = []
 
-  last = len(cartesian_points) - 1
-  si = -1
-  ei = 0
-  while ei <= last:
+  count = len(cartesian_points)
+  last = count - 1
+  si = 0
+  ei = 2
+  while si <= last:
     # measure the maximum distance to the intermediate points
-    distance = 0
+    max_distance = 0
     for ix in range(si + 1, ei):
-      distance = max(distance, point_to_line_distance(cartesian_points[ix], \
-                                                      (cartesian_points[si], cartesian_points[ei])))
-      if distance >= threshold:
+      max_distance = max(max_distance, point_to_line_distance(cartesian_points[ix % count], \
+                                                              (cartesian_points[si % count], \
+                                                               cartesian_points[ei % count])))
+      if max_distance >= threshold:
         break
 
-    # See if we can keep this point, or start a segment with it.
-    if distance < threshold:
-      if si < 0:
-        si = ei
-        points = 0
+    # If possible to extend the segment we extend it
+    if max_distance < threshold and (ei - si) < count:
       ei += 1
       continue
 
-    # segment must have at least two distinct points to be valid.
-    if ei - si >= min_points:
-      segments.append((cartesian_points[si], cartesian_points[ei - 1]))
+    # segment must have at the minium number of points to be valid.
+    if (ei - si) >= min_points:
+      segments.append((cartesian_points[si % count], cartesian_points[(ei - 1) % count]))
 
     # the start of next segment can start and the end of the previous one.
     si = ei - 1
+    ei += 1
 
-  # if we finished without terminating the segment, consider terminating it
-  if si >= 0:
-    if last + 1 - si >= min_points:
-      segments.append((cartesian_points[si], cartesian_points[last]))
   return segments
 
 def detect_corners_from_segments(segments, angle_threshold = math.pi/6):
