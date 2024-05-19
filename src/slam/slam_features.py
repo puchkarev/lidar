@@ -50,8 +50,6 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
       break
     ei += 1
 
-  print(segments)
-
   return segments
 
 def detect_corners_from_segments(segments, angle_threshold = math.pi/6):
