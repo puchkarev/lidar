@@ -26,7 +26,7 @@ def save_map():
   with open('sample_map.pkl', 'wb') as f:
     pickle.dump(segments, f)
 
-def run(repeat):
+def run(repeat, frames):
   # Define the environment
   segments = pickle.load(open('sample_map.pkl', 'rb'))
 
@@ -122,12 +122,17 @@ def run(repeat):
     graph_plot4.grid()
     plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
 
-  ani = animation.FuncAnimation(fig1, update, frames=100, repeat=repeat, cache_frame_data=False, interval=10)
+    if not repeat and frame + 1 == frames:
+      plt.close()  # Close the plot window
+      sys.exit()  # Exit Python when the animation is complete
+
+  # start the animation
+  ani = animation.FuncAnimation(fig1, update, frames=frames, repeat=repeat, cache_frame_data=False, interval=10)
   plt.show()
 
 if __name__ == '__main__':
   if 'profile' in sys.argv:
     import cProfile
-    cProfile.run('run(False)')
+    cProfile.run('run(repeat = False, frames = 100)')
   else:
-    run(True)
+    run(repeat = True, frames = 100)
