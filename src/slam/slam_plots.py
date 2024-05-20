@@ -55,8 +55,8 @@ class PlotData:
       if len(self.vals_estimated_pose_t) < 2:
         self.vals_turn_speed.append(0.0)
       else:
-        self.vals_turn_speed.append(normalize_angle(self.vals_estimated_pose_t[-1] - \
-                                                    self.vals_estimated_pose_t[-2]))
+        self.vals_turn_speed.append(numpy.rad2deg(normalize_angle(self.vals_estimated_pose_t[-1] - \
+                                                                  self.vals_estimated_pose_t[-2])))
 
       if mapping.localized:
         self.vals_localized.append(100)
