@@ -98,8 +98,11 @@ class PlotData:
                     [segment[0][1], segment[1][1]], 'k-')
 
     # show the real robot position
+    face = 10.0
     map_plot.plot([robot.position[0]], \
-                  [robot.position[1]], 'bx', markersize=10)
+                  [robot.position[1]], 'bo', markersize=7)
+    map_plot.plot([robot.position[0], robot.position[0] + face * numpy.cos(robot.position[2])], \
+                  [robot.position[1], robot.position[1] + face * numpy.sin(robot.position[2])], 'b-', markersize=1)
 
   def plot_mapping(self, mapping, map_plot):
     # show the robot position distribution
@@ -107,8 +110,12 @@ class PlotData:
                   [p[1] for p in mapping.poses], 'ro', markersize=1)
 
     # show the mean of the distribution
-    map_plot.plot([p[0] for p in mapping.poses], \
-                  [p[1] for p in mapping.poses], 'rx', markersize=5)
+    face = 10.0
+    map_plot.plot([mapping.robot_mean[0]], \
+                  [mapping.robot_mean[1]], 'ro', markersize=5)
+    map_plot.plot([mapping.robot_mean[0], mapping.robot_mean[0] + face * numpy.cos(mapping.robot_mean[2])], \
+                  [mapping.robot_mean[1], mapping.robot_mean[1] + face * numpy.sin(mapping.robot_mean[2])], \
+                   'r-', markersize=1)
 
     # show the lidar returns
     map_plot.plot([p[0] for p in mapping.cartesian_points], \
