@@ -106,8 +106,13 @@ class PlotData:
 
   def plot_mapping(self, mapping, map_plot):
     # show the robot position distribution
+    face = 5.0
     map_plot.plot([p[0] for p in mapping.poses], \
                   [p[1] for p in mapping.poses], 'ro', markersize=1)
+    for p in mapping.poses:
+      map_plot.plot([p[0], p[0] + face * numpy.cos(p[2])], \
+                    [p[1], p[1] + face * numpy.sin(p[2])], 'r-', markersize=1)
+
 
     # show the mean of the distribution
     face = 10.0
@@ -117,11 +122,19 @@ class PlotData:
                   [mapping.robot_mean[1], mapping.robot_mean[1] + face * numpy.sin(mapping.robot_mean[2])], \
                    'r-', markersize=1)
 
+    # show the features we have from the mapping map
+    for segment in mapping.map_segments:
+      map_plot.plot([segment[0][0], segment[1][0]], \
+                    [segment[0][1], segment[1][1]], 'b-')
+    for corner in mapping.map_corners:
+      map_plot.plot([corner[0]], \
+                    [corner[1]], 'bo', markersize = 5)
+
     # show the lidar returns
     map_plot.plot([p[0] for p in mapping.cartesian_points], \
                   [p[1] for p in mapping.cartesian_points], 'bo', markersize=1)
 
-    # show the features that we have from mapping
+    # show the features that we have from extraction
     for segment_association in mapping.segment_associations:
       segment = segment_association[0]
       map_plot.plot([segment[0][0], segment[1][0]], \
