@@ -1,25 +1,28 @@
 import math
 import numpy
 
-def normalize_angle(angle):
+def normalize_angle(angle: float):
   """Normalizes the angle to be in range (-pi, pi]"""
   angle = ( ( angle % (math.pi * 2) ) + math.pi * 2) % (math.pi * 2)
   if (angle > math.pi):
     angle -= math.pi * 2;
   return angle
 
-def point_to_point_distance(p0, p1):
+def point_to_point_distance(p0: list[float], \
+                            p1: list[float]):
   """Returns distance between two points"""
   return math.hypot(p0[1] - p1[1], p0[0] - p1[0])
 
-def segment_endpoint_distance(segment1, segment2):
+def segment_endpoint_distance(segment1: list[list[float], list[float]], \
+                              segment2: list[list[float], list[float]]):
   """Returns the distance from segment endpoints to the segments"""
   return point_to_segment_distance(segment1[0], segment2) + \
          point_to_segment_distance(segment1[1], segment2) + \
          point_to_segment_distance(segment2[0], segment1) + \
          point_to_segment_distance(segment2[1], segment1)
 
-def point_to_line_distance(point, line):
+def point_to_line_distance(point: list[float], \
+                           line: list[list[float], list[float]]):
   """Returns the distance between the point and the line"""
   # Length of the line segment
   segment_length = point_to_point_distance(line[0], line[1])
@@ -34,7 +37,9 @@ def point_to_line_distance(point, line):
   # so h = 2 * A / b
   return double_triangle_area / segment_length
 
-def projected_point_on_segment(point, segment, segment_len = None):
+def projected_point_on_segment(point: list[float], \
+                               segment: list[list[float], list[float]], \
+                               segment_len: float = None):
   """Returns the projection of a point onto the segment"""
   # Make v1 (as the segment) and v2 as the segment[0] to point
   v1 = (segment[1][0] - segment[0][0], segment[1][1] - segment[0][1])
@@ -53,7 +58,7 @@ def projected_point_on_segment(point, segment, segment_len = None):
   dot = v1_norm[0] * v2[0] + v1_norm[1] * v2[1]
   return dot * segment_len_inv
 
-def line_fit(points):
+def line_fit(points: list[list[float]]):
   x = [p[0] for p in points]
   y = [p[1] for p in points]
 
@@ -82,7 +87,8 @@ def line_fit(points):
   # the direction vector is (a, b) intersects (x_mean, y_mean)
   return a, b, c, x_mean, y_mean
 
-def point_to_segment_distance(point, segment):
+def point_to_segment_distance(point: list[float], \
+                              segment: list[list[float], list[float]]):
   """Returns the distance between the point and the segment"""
   dot = projected_point_on_segment(point, segment)
 
@@ -95,13 +101,15 @@ def point_to_segment_distance(point, segment):
   else:
     return point_to_line_distance(point, segment)
 
-def segments_intersect(segment1, segment2):
+def segments_intersect(segment1: list[list[float], list[float]], \
+                       segment2: list[list[float], list[float]]):
   """Returns true if segmnets intersect"""
   if segment_segment_intersection(segment1, segment2):
     return True
   return False
 
-def segment_segment_intersection(segment1, segment2):
+def segment_segment_intersection(segment1: list[list[float], list[float]], \
+                                 segment2: list[list[float], list[float]]):
   """Returns the intersection point between two segments"""
   intersection = line_line_intersection(segment1, segment2)
   if not intersection:
@@ -114,7 +122,8 @@ def segment_segment_intersection(segment1, segment2):
     return None
   return intersection
 
-def segment_to_segment_distance(segment1, segment2):
+def segment_to_segment_distance(segment1: list[list[float], list[float]], \
+                                segment2: list[list[float], list[float]]):
   """Returns the minimum distance between two segments"""
   if segments_intersect(segment1, segment2):
     return 0.0
@@ -124,13 +133,15 @@ def segment_to_segment_distance(segment1, segment2):
                point_to_segment_distance(segment2[1], segment1)]
   return min(distances)
 
-def lines_intersect(line1, line2):
+def lines_intersect(line1: list[list[float], list[float]], \
+                    line2: list[list[float], list[float]]):
   """Returns true if two lines expressed by pairs of points, intersect"""
   if line_line_intersection(line1, line2):
     return True
   return False
 
-def line_line_intersection(line1, line2):
+def line_line_intersection(line1: list[list[float], list[float]], \
+                           line2: list[list[float], list[float]]):
   """Returns the intersection point formed by two lines defined by pairs of points"""
   xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
   ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
@@ -147,7 +158,8 @@ def line_line_intersection(line1, line2):
   y = det(d, ydiff) / div
   return (x, y)
 
-def polar_to_cartesian(lidar_data, pose):
+def polar_to_cartesian(lidar_data: list[list[float]], \
+                       pose: list[float]):
   """
   Convert polar LIDAR data to Cartesian coordinates based on the robot's current pose.
 
@@ -171,20 +183,24 @@ def polar_to_cartesian(lidar_data, pose):
 
   return cartesian_points
 
-def transform_point(point, original_pose, new_pose):
+def transform_point(point: list[float], \
+                    original_pose: list[float], \
+                    new_pose: list[float]):
   """Transforms a point as seen from some original pose, to a point seen from the new pose"""
   distance = point_to_point_distance(point, original_pose)
   angle = numpy.arctan2(point[1] - original_pose[1], point[0] - original_pose[0]) - original_pose[2]
   global_angle = angle + new_pose[2]
   return (new_pose[0] + distance * numpy.cos(global_angle), new_pose[1] + distance * numpy.sin(global_angle))
 
-def transform_segment(segment, original_pose, new_pose):
+def transform_segment(segment: list[list[float], list[float]], \
+                      original_pose: list[float], \
+                      new_pose: list[float]):
   """Transforms a segment as seen from some original pose, to a point seen from the new pose"""
   return ( \
     transform_point(point = segment[0], original_pose = original_pose, new_pose = new_pose), \
     transform_point(point = segment[1], original_pose = original_pose, new_pose = new_pose)
   )
 
-def segment_angle(segment):
+def segment_angle(segment: list[list[float], list[float]]):
   return numpy.arctan2(segment[1][1] - segment[0][1], segment[1][0] - segment[0][0])
 
