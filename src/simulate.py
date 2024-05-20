@@ -66,11 +66,11 @@ def run(repeat = True, frames = 100, animate = True):
 
   def handle_robot():
     # Pick the movement direction and angle
-    move_distance, turn_angle = plan_motion_from_lidar(robot.sense_environment())
+    move_distance, turn_angle = plan_motion_from_lidar(mapping.lidar_points)
 
     # This woudl be random movement and angle
-    #move_distance = numpy.random.uniform(0.0, 10.0)
-    #turn_angle = numpy.random.uniform(numpy.deg2rad(-3.0), numpy.deg2rad(10.0))
+    # move_distance = numpy.random.uniform(0.0, 10.0)
+    # turn_angle = numpy.random.uniform(numpy.deg2rad(-3.0), numpy.deg2rad(10.0))
 
     # Determine if we are moving or staying put, on large error do not move
     if localize_steps > 0 and not mapping.localized:
@@ -136,6 +136,6 @@ def run(repeat = True, frames = 100, animate = True):
 if __name__ == '__main__':
   if 'profile' in sys.argv:
     import cProfile
-    cProfile.run('run(repeat = False, frames = 100, animate = False)')
+    cProfile.run('run(repeat = False, frames = 500, animate = False)')
   else:
     run(repeat = True, frames = 100, animate = True)
