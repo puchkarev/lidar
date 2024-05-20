@@ -57,7 +57,9 @@ def score_pose(pose, reference_pose, feature_associations, transform_function, s
   """
   weight = 1.0
   for observed_feature, map_feature in feature_associations:
-    corrected_feature = transform_function(observed_feature, reference_pose, pose)
+    corrected_feature = observed_feature
+    if transform_function:
+      corrected_feature = transform_function(corrected_feature, reference_pose, pose)
     distance = scoring_function(corrected_feature, map_feature)
     likelihood = numpy.exp(-0.5 * ((distance ** 2) / sensor_noise**2))
     weight *= likelihood

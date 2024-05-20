@@ -186,12 +186,12 @@ class Slam:
       # Perform assocation to the map features
       self.association_pose = numpy.array(pose)
       self.segment_associations, self.new_segments, _ = associate_features( \
-        new_features = [transform_segment(s, reference_pose, pose) for s in seen_segments], \
+        new_features = transform_segments(seen_segments, reference_pose, pose), \
         map_features = self.map_segments, \
         scoring_function = segment_endpoint_distance, \
         threshold = self.config["SegmentAssociationThreshold"])
       self.corner_associations, self.new_corners, _ = associate_features( \
-        new_features = [transform_point(p, reference_pose, pose) for p in seen_corners], \
+        new_features = transform_points(seen_corners, reference_pose, pose), \
         map_features = self.map_corners, \
         scoring_function = point_to_point_distance, \
          threshold = self.config["CornerAssociationThreshold"])
@@ -218,16 +218,26 @@ class Slam:
     # Score each of the candidates
     for i, pose in enumerate(self.poses):
       self.weights[i] = 1.0
-      self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
-                                    feature_associations = segment_associations, \
-                                    transform_function = transform_segment, \
-                                    scoring_function = segment_endpoint_distance, \
-                                    sensor_noise = self.config["ScoringSensorNoise"])
-      self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
-                                    feature_associations = corner_associations, \
-                                    transform_function = transform_point, \
-                                    scoring_function = point_to_point_distance, \
-                                    sensor_noise = self.config["ScoringSensorNoise"])
+
+      if len(segment_associations) > 0:
+        previewed_segments = [(p, s[1]) for p, s in zip( \
+          transform_segments([s[0] for s in segment_associations], association_pose, pose), \
+          segment_associations)]
+        self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
+                                      feature_associations = previewed_segments, \
+                                      transform_function = None, \
+                                      scoring_function = segment_endpoint_distance, \
+                                      sensor_noise = self.config["ScoringSensorNoise"])
+
+      if len(corner_associations) > 0:
+        previewed_corners = [(p, s[1]) for p, s in zip( \
+          transform_points([s[0] for s in corner_associations], association_pose, pose), \
+          corner_associations)]
+        self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
+                                      feature_associations = previewed_corners, \
+                                      transform_function = None, \
+                                      scoring_function = point_to_point_distance, \
+                                      sensor_noise = self.config["ScoringSensorNoise"])
 
     # If all the candidates are bad, we increase the variance.
     if max(self.weights) == 0.0:

@@ -182,9 +182,7 @@ def detect_corners_from_segments(segments, angle_threshold = math.pi/6):
   segment_count = len(segments)
   for i in range(segment_count):
     j = (i + 1) % segment_count
-    angle = numpy.abs(normalize_angle( \
-                      numpy.abs(normalize_angle(segment_angle(segments[i]))) - \
-                      numpy.abs(normalize_angle(segment_angle(segments[j])))))
+    angle = numpy.abs(normalize_angle(segment_angle(segments[i]) - segment_angle(segments[j])))
     if angle > angle_threshold:
       corners.append(line_line_intersection(segments[i], segments[j]))
   return corners

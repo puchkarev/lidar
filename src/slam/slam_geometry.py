@@ -187,19 +187,47 @@ def transform_point(point: list[float], \
                     original_pose: list[float], \
                     new_pose: list[float]):
   """Transforms a point as seen from some original pose, to a point seen from the new pose"""
-  distance = point_to_point_distance(point, original_pose)
-  angle = numpy.arctan2(point[1] - original_pose[1], point[0] - original_pose[0]) - original_pose[2]
-  global_angle = angle + new_pose[2]
-  return (new_pose[0] + distance * numpy.cos(global_angle), new_pose[1] + distance * numpy.sin(global_angle))
+  return transform_points([point], original_pose, new_pose)[0]
+
+def transform_points(points: list[float], \
+                     original_pose: list[float], \
+                     new_pose: list[float]):
+  """Transforms a colleciton of points as seen from some original pose, to a point seen from the new pose"""
+  angle1_cos = math.cos(-original_pose[2])
+  angle1_sin = math.sin(-original_pose[2])
+  r1 = numpy.array([[angle1_cos, -angle1_sin],
+                   [angle1_sin, angle1_cos]])
+  t1 = numpy.array([original_pose[0], original_pose[1]])
+
+  angle2_cos = math.cos(new_pose[2])
+  angle2_sin = math.sin(new_pose[2])
+  r2 = numpy.array([[angle2_cos, -angle2_sin],
+                   [angle2_sin, angle2_cos]])
+  t2 = numpy.array([new_pose[0], new_pose[1]])
+
+  # result = r2 @ (r1 @ (p - t1) ) + t2
+  # result = (r2 @ r1) @ (p - t1) + t2
+  # result = r @ (p - t1) + t2
+  r = r2 @ r1
+
+  gl = [r @ (numpy.array(p) - t1) + t2 for p in points]
+
+  return [[g[0], g[1]] for g in gl]
 
 def transform_segment(segment: list[list[float], list[float]], \
                       original_pose: list[float], \
                       new_pose: list[float]):
   """Transforms a segment as seen from some original pose, to a point seen from the new pose"""
-  return ( \
-    transform_point(point = segment[0], original_pose = original_pose, new_pose = new_pose), \
-    transform_point(point = segment[1], original_pose = original_pose, new_pose = new_pose)
-  )
+  return transform_segments([segment], original_pose = original_pose, new_pose = new_pose)[0]
+
+def transform_segments(segments: list[list[float], list[float]], \
+                       original_pose: list[float], \
+                       new_pose: list[float]):
+  """Transforms a colleciton of segments as seen from some original pose, to a point seen from the new pose"""
+  q = len(segments)
+  points = [s[0] for s in segments] + [s[1] for s in segments]
+  transformed = transform_points(points, original_pose = original_pose, new_pose = new_pose)
+  return [[s, e] for s, e in zip(transformed[:q], transformed[q:])]
 
 def segment_angle(segment: list[list[float], list[float]]):
   return numpy.arctan2(segment[1][1] - segment[0][1], segment[1][0] - segment[0][0])
