@@ -41,7 +41,7 @@ def compute_mean_and_covariance(poses, weights):
 
   weighted_cov = numpy.zeros((3, 3))
   for pose, weight in zip(poses, weights):
-    vec = [pose[0] - weighted_mean[0], pose[1] - weighted_mean[1], pose[2] - weighted_mean[2]]
+    vec = [pose[0] - weighted_mean[0], pose[1] - weighted_mean[1], normalize_angle(pose[2] - weighted_mean[2])]
     weighted_cov += weight * numpy.outer(vec, vec)
 
   return numpy.array(weighted_mean), numpy.array(weighted_cov)
