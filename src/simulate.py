@@ -20,13 +20,13 @@ def save_map():
     ((300.0, 150.0), (300.0, 100.0)),
     ((300.0, 100.0), (500.0, 100.0)),
     ((500.0, 100.0), (500.0, 500.0)),
-    ((100.0, 100.0), (100.0, 500.0)),
-    ((100.0, 500.0), (500.0, 500.0))
+    ((500.0, 500.0), (100.0, 500.0)),
+    ((100.0, 500.0), (100.0, 100.0))
   ]
   with open('sample_map.pkl', 'wb') as f:
     pickle.dump(segments, f)
 
-def run(repeat, frames):
+def run(repeat = True, frames = 100, animate = True):
   # Define the environment
   segments = pickle.load(open('sample_map.pkl', 'rb'))
 
@@ -104,35 +104,38 @@ def run(repeat, frames):
 
     handle_robot()
 
-    plot_data.collect_data(mapping = mapping, robot = robot)
-    plot_data.truncate(100)
+    if animate:
+      plot_data.collect_data(mapping = mapping, robot = robot)
+      plot_data.truncate(100)
 
-    map_plot.cla()
-    map_plot.set_aspect('equal')
-    plot_data.plot_reality(robot = robot, map_plot = map_plot)
-    plot_data.plot_mapping(mapping = mapping, map_plot = map_plot)
+      map_plot.cla()
+      map_plot.set_aspect('equal')
+      map_plot.set_xlim([-100, 700])
+      map_plot.set_ylim([-100, 700])
+      plot_data.plot_reality(robot = robot, map_plot = map_plot)
+      plot_data.plot_mapping(mapping = mapping, map_plot = map_plot)
 
-    graph_plot1.cla()
-    graph_plot1.grid()
-    graph_plot2.cla()
-    graph_plot2.grid()
-    graph_plot3.cla()
-    graph_plot3.grid()
-    graph_plot4.cla()
-    graph_plot4.grid()
-    plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
+      graph_plot1.cla()
+      graph_plot1.grid()
+      graph_plot2.cla()
+      graph_plot2.grid()
+      graph_plot3.cla()
+      graph_plot3.grid()
+      graph_plot4.cla()
+      graph_plot4.grid()
+      plot_data.plot_graphs(map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4)
 
     if not repeat and frame + 1 == frames:
       plt.close()  # Close the plot window
       sys.exit()  # Exit Python when the animation is complete
 
   # start the animation
-  ani = animation.FuncAnimation(fig1, update, frames=frames, repeat=repeat, cache_frame_data=False, interval=10)
+  ani = animation.FuncAnimation(fig1, update, frames=frames, repeat=repeat, cache_frame_data=False, interval=1)
   plt.show()
 
 if __name__ == '__main__':
   if 'profile' in sys.argv:
     import cProfile
-    cProfile.run('run(repeat = False, frames = 100)')
+    cProfile.run('run(repeat = False, frames = 100, animate = False)')
   else:
-    run(repeat = True, frames = 100)
+    run(repeat = True, frames = 100, animate = True)

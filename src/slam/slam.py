@@ -86,11 +86,49 @@ class Slam:
            robot_covariance[1][1] < self.config["LocalizedDistanceThreshold"] and \
            robot_covariance[2][2] < self.config["LocalizedAngleThreshold"]
 
-  def reinitialize_particles(self, num_particles):
+  def reinitialize_particles(self, num_particles, threshold = None):
     """Reinitializes the particles and may change the number of particles used."""
-    self.poses, self.weights = initialize_particles(num_particles = num_particles, \
-                                                    initial_pose = self.robot_mean, \
-                                                    pose_noise_cov = self.robot_covariance)
+    if not threshold:
+      self.poses, self.weights = initialize_particles(num_particles = num_particles, \
+                                                      initial_pose = self.robot_mean, \
+                                                      pose_noise_cov = self.robot_covariance)
+      return
+
+    # Remove all the elements outside the threshold
+    scored_poses = [(p, w) for p, w in zip(self.poses, self.weights) if w >= threshold]
+
+    # Sort the list so that we go from highest score to lowest
+    scored_poses.sort(key = lambda x: x[1], reverse = True)
+
+    # If we have too many elements, then remove the lowest scoring ones.
+    if len(scored_poses) > num_particles:
+      scored_poses = scored_poses[:num_particles]
+
+    if len(scored_poses) == 0:
+      # we have emptied the list, just repopulate
+      self.poses, self.weights = initialize_particles(num_particles = num_particles, \
+                                                      initial_pose = self.robot_mean, \
+                                                      pose_noise_cov = self.robot_covariance)
+      return
+
+    # unpack the lists
+    self.poses = [p for p, w in scored_poses]
+    self.weights = [w for p, w in scored_poses]
+
+    # if the list is now long enough, then just return it
+    need = num_particles - len(self.poses)
+    if need == 0:
+      return
+
+    # we need to grow the list, so grab new candidates
+    new_poses, _ = initialize_particles(num_particles = need, \
+                                        initial_pose = self.robot_mean, \
+                                        pose_noise_cov = self.robot_covariance)
+    self.poses = [s for l in [self.poses, new_poses] for s in l]
+
+    # we have not scored the new candidates, so take the remainder of weight and distribute it evenly.
+    remaining_weight = max(1.0 - sum(self.weights), 0.0)
+    self.weights = [w for l in [self.weights, [remaining_weight / need] * need] for w in l]
 
   def add_noise(self, x_error, y_error, rotation_error):
     """Adds specific amount of noise to the pose estimation"""
@@ -173,9 +211,8 @@ class Slam:
         self.localized = False
       return
 
-    # Draw new samples based on the distribution (maybe should keep the best previous candidates,
-    # or possibly just resample the candidates which scored 0's.
-    self.reinitialize_particles(len(self.poses))
+    # Draw new samples based on the distribution
+    self.reinitialize_particles(num_particles = len(self.poses), threshold = 1.0 / len(self.poses))
 
     # Score each of the candidates
     for i, pose in enumerate(self.poses):
