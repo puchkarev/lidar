@@ -32,10 +32,10 @@ def run(repeat = True, frames = 100, animate = True):
 
   # Initial position and parameters of the robot
   initial_position = [400.0, 250.0, numpy.deg2rad(35.0)]
-  move_error = 1.0
-  turn_error = numpy.deg2rad(1.0)
-  sensor_noise = 1.0
-  sensor_angle_std_dev = numpy.deg2rad(1.0)
+  move_error = 3.0
+  turn_error = numpy.deg2rad(2.0)
+  sensor_noise = 5.0
+  sensor_angle_std_dev = numpy.deg2rad(2.0)
 
   # Initialize the robot
   robot = SimulatedRobot(initial_position = initial_position, \
@@ -44,14 +44,14 @@ def run(repeat = True, frames = 100, animate = True):
                          angle_noise_std_dev = turn_error, \
                          sensor_noise = sensor_noise, \
                          sensor_angle_std_dev = sensor_angle_std_dev, \
-                         num_points = 200, \
+                         num_points = 100, \
                          field_of_view = numpy.deg2rad(360.0), \
                          max_distance = 1000.0)
 
   # Initialize the mapping environment.
   mapping = Slam(initial_position=initial_position, \
                  robot_covariance=[[25.0, 0.0, 0.0], [0.0, 25.0, 0.0], [0.0, 0.0, numpy.deg2rad(25.0)]], \
-                 num_points=50,
+                 num_points=10,
                  segments = segments)
 
   # Set up the plotting
@@ -110,8 +110,8 @@ def run(repeat = True, frames = 100, animate = True):
 
       map_plot.cla()
       map_plot.set_aspect('equal')
-      map_plot.set_xlim([-100, 700])
-      map_plot.set_ylim([-100, 700])
+      map_plot.set_xlim([0, 600])
+      map_plot.set_ylim([0, 600])
       plot_data.plot_reality(robot = robot, map_plot = map_plot)
       plot_data.plot_mapping(mapping = mapping, map_plot = map_plot)
 
