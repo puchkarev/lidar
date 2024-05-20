@@ -1,11 +1,19 @@
 # lidar
 Handling lidar data from rpilidar
 
-To run a simulation simply execute
+To run a simulation simply execute from the root directory of the git repo
 
-```python3 simulate.py```
+```python3 ./src/simulate.py```
 
 The primary usage is in slam.py and example of usinge is in simulate.py
+
+To test the code functionality use
+
+```python3 -m pytest```
+
+To profile the code
+
+```python3 ./src/simulate.py profile```
 
 The basics are:
 ```
