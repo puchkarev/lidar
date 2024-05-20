@@ -21,6 +21,23 @@ def segment_endpoint_distance(segment1: list[list[float], list[float]], \
          point_to_segment_distance(segment2[0], segment1) + \
          point_to_segment_distance(segment2[1], segment1)
 
+def interpolate_point_on_segment(segment: list[list[float], list[float]], fraction: float):
+  return [segment[0][0] + (segment[1][0] - segment[0][0]) * fraction, \
+          segment[0][1] + (segment[1][1] - segment[0][1]) * fraction]
+
+def projected_segment_endpoint_distance(segment1: list[list[float], list[float]], \
+                                        segment2: list[list[float], list[float]]):
+  dist = 0.0
+  points = 0
+  for p, s in [(segment1[0], segment2), (segment1[1], segment2), (segment2[0], segment1), (segment2[1], segment1)]:
+    f = projected_point_on_segment(p, s)
+    if f >= 0.0 and f <= 1.0:
+      dist += point_to_point_distance(p, interpolate_point_on_segment(s, f))
+      points += 1
+  if points < 2:
+    return float('inf')
+  return dist
+
 def point_to_line_distance(point: list[float], \
                            line: list[list[float], list[float]]):
   """Returns the distance between the point and the line"""

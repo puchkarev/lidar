@@ -14,8 +14,8 @@ def DefaultSlamConfig():
     "SegmentMinimumPoints": 5, \
     "CornerAngleThreshold": numpy.deg2rad(30.0), \
     "MinFeaturesToLocalize": 3, \
-    "SegmentAssociationThreshold": 200.0, \
-    "CornerAssociationThreshold": 200.0, \
+    "SegmentAssociationThreshold": 50.0, \
+    "CornerAssociationThreshold": 50.0, \
     "IncreasePoseVariance": 1.0, \
     "IncreaseAngleVariance": numpy.deg2rad(1.0), \
     "ScoringSensorNoise": 50.0, \
@@ -188,7 +188,7 @@ class Slam:
       self.segment_associations, self.new_segments, _ = associate_features( \
         new_features = transform_segments(seen_segments, reference_pose, pose), \
         map_features = self.map_segments, \
-        scoring_function = segment_endpoint_distance, \
+        scoring_function = projected_segment_endpoint_distance, \
         threshold = self.config["SegmentAssociationThreshold"])
       self.corner_associations, self.new_corners, _ = associate_features( \
         new_features = transform_points(seen_corners, reference_pose, pose), \
@@ -226,7 +226,7 @@ class Slam:
         self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
                                       feature_associations = previewed_segments, \
                                       transform_function = None, \
-                                      scoring_function = segment_endpoint_distance, \
+                                      scoring_function = projected_segment_endpoint_distance, \
                                       sensor_noise = self.config["ScoringSensorNoise"])
 
       if len(corner_associations) > 0:
