@@ -17,69 +17,97 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
   - List of tuples which express line segments as a tuple of two end points
   """
 
-  count = len(cartesian_points)
+  point_count = len(cartesian_points)
 
   def max_distance(start, end):
-    ix = (start + 1) % count
+    """
+    computes the maximum of distance between all intermediate points and a line
+    formed by first and last points
+    """
+    ix = (start + 1) % point_count
     distance = 0
-    while ix != (end % count):
-      distance = max(distance, point_to_line_distance(cartesian_points[ix % count], \
-                                                      (cartesian_points[start % count], \
-                                                       cartesian_points[end % count])))
-      ix = (ix + 1) % count
+    while ix != (end % point_count):
+      distance = max(distance, point_to_line_distance(cartesian_points[ix % point_count], \
+                                                      (cartesian_points[start % point_count], \
+                                                       cartesian_points[end % point_count])))
+      ix = (ix + 1) % point_count
     return distance
 
+  def get_point_quantity(start, end):
+    """returns the number of points between the start end end index inclusive"""
+    start_rem = start % point_count
+    end_rem = end % point_count
+    if end_rem > start_rem:
+      return end_rem - start_rem + 1
+    elif end_rem == start_rem:
+      return 0
+    else:
+      return (point_count - start_rem) + end_rem
+
   def extendable(start, end):
-    if (end - start + 1) < 5:
+    """returns if the segment can be extended to include the point at end index"""
+    points = get_point_quantity(start, end)
+
+    # for short segments we check the distance all all intermediate points.
+    # complexity grows at the rate of number of points O(N), but since we
+    # call this for every points which we add to the segment the outher
+    # complexity is also O(N) so combined this is O(N^2) so should be avoided.
+    if points < 5:
       return max_distance(start, end) < threshold
 
-    # for a line which is long enough only check the end point as compared to a line to the midpoint
-    mid = int((start + end) / 2)
-    return point_to_line_distance(cartesian_points[end % count], \
-                                  (cartesian_points[start % count], \
-                                   cartesian_points[mid % count])) < threshold
+    # for a line which is long enough only check the end point as compared to a line to the midpoint.
+    # complexity of this is O(1).
+    mid = int(start + points / 2)
+    return point_to_line_distance(cartesian_points[end % point_count], \
+                                  (cartesian_points[start % point_count], \
+                                   cartesian_points[mid % point_count])) < threshold
 
   si = 0
   ei = 2
   segment_ix = []
-  while si < count:
+  while si < point_count:
+    # this is true if the end index is equal to the point after the start of the first segment
+    beyond_the_start_of_first_segment = \
+      len(segment_ix) > 0 and \
+      (ei % point_count) == ((segment_ix[0][0] + 1) % point_count)
+
     # If possible to extend the segment we extend it
     # - must not go beyond the start of the first segment (if one exists)
     # - must not loop around
     # - all intermediate points must be within threshold distance
-    if (len(segment_ix) == 0 or (ei % count) != segment_ix[0][0]) and \
-       (ei - si) < count and \
-       extendable(si, ei):
+    if (not beyond_the_start_of_first_segment) and get_point_quantity(si, ei) < point_count and extendable(si, ei):
       ei += 1
       continue
 
     # segment must have at the minium number of points to be valid.
     if (ei - si) >= min_points:
-      start_ix = si % count
-      end_ix = (ei - 1) % count
+      start_ix = si % point_count
+      end_ix = (ei - 1) % point_count
       segment_ix.append((start_ix, end_ix))
 
     # the start of next segment can start and the end of the previous one,
     # but we should not extend past the end of the first segment (if one exists)
     si = ei - 1
-    if len(segment_ix) > 0 and (ei % count) == segment_ix[0][0]:
+    if len(segment_ix) > 0 and (ei % point_count) == (segment_ix[0][0] % point_count):
       break
     ei += 1
 
   # check if we can combine the first and last segments
-  if len(segment_ix) >= 2 and segment_ix[-1][1] == segment_ix[0][0]:
-    if max_distance(segment_ix[-1][0], segment_ix[0][1]) < threshold:
-      segments_ix[0] = ([segment_ix[-1][0]], segment_ix[0][1])
-      segments.pop()
+  if len(segment_ix) >= 2 and (segment_ix[-1][1] % point_count) == (segment_ix[0][0] % point_count):
+    if max_distance((segment_ix[-1][0] % point_count), (segment_ix[0][1] % point_count)) < threshold:
+      segment_ix[0] = (segment_ix[-1][0] % point_count, segment_ix[0][1] % point_count)
+      segment_ix.pop()
 
   segments = []
   for seg_ix in segment_ix:
     # grab all the points on the segment
     pts = []
-    if seg_ix[0] < seg_ix[1]:
-      pts = cartesian_points[seg_ix[0]:seg_ix[1]+1]
+    start_ix = seg_ix[0] % point_count
+    end_ix = seg_ix[1] % point_count
+    if start_ix < end_ix:
+      pts = cartesian_points[start_ix:end_ix + 1]
     else:
-      pts = cartesian_points[seg_ix[0]:] + cartesian_points[:seg_ix[1]]
+      pts = cartesian_points[start_ix:] + cartesian_points[:end_ix+1]
 
     # find the best fit line (intersects x_mean, y_mean)
     # a * x + b * y + c = 0
