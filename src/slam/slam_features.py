@@ -40,7 +40,7 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
     if end_rem > start_rem:
       return end_rem - start_rem + 1
     elif end_rem == start_rem:
-      return 0
+      return 1
     else:
       return (point_count - start_rem) + end_rem
 
@@ -80,14 +80,16 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
       continue
 
     # segment must have at the minium number of points to be valid.
-    if (ei - si) >= min_points:
-      start_ix = si % point_count
-      end_ix = (ei - 1) % point_count
-      segment_ix.append((start_ix, end_ix))
+    if get_point_quantity(si, ei - 1) < min_points:
+      si += 1
+      ei = si + 1
+    else:
+      segment_ix.append([si % point_count, (ei - 1) % point_count])
+      si = ei - 1
 
     # the start of next segment can start and the end of the previous one,
-    # but we should not extend past the end of the first segment (if one exists)
-    si = ei - 1
+    # but we should not extend past the end of the first segment (if one exists),
+    # we will consider merging the first and last in code below.
     if len(segment_ix) > 0 and (ei % point_count) == (segment_ix[0][0] % point_count):
       break
     ei += 1
@@ -95,8 +97,49 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
   # check if we can combine the first and last segments
   if len(segment_ix) >= 2 and (segment_ix[-1][1] % point_count) == (segment_ix[0][0] % point_count):
     if max_distance((segment_ix[-1][0] % point_count), (segment_ix[0][1] % point_count)) < threshold:
-      segment_ix[0] = (segment_ix[-1][0] % point_count, segment_ix[0][1] % point_count)
+      segment_ix[0] = [segment_ix[-1][0] % point_count, segment_ix[0][1] % point_count]
       segment_ix.pop()
+
+  # consider trading off points for segments that share a point.
+  segment_count = len(segment_ix)
+  for ix in range(segment_count):
+    nx = (ix + 1) % segment_count
+
+    if (segment_ix[ix][1] % point_count) != (segment_ix[nx][0] % point_count):
+      # segments don't share a point, no need to try to grow back
+      continue
+
+    while get_point_quantity(segment_ix[ix][0], segment_ix[ix][1]) > 1:
+      # proposed point to be shared
+      pt_ix = (segment_ix[ix][1] - 1 + point_count) % point_count
+
+      dist_nx = point_to_line_distance(cartesian_points[pt_ix % point_count], \
+                                       (cartesian_points[segment_ix[nx][0] % point_count], \
+                                        cartesian_points[segment_ix[nx][1] % point_count]))
+      if dist_nx > threshold:
+        # the new proposed shared point is too far away from nx segment, so we don't want
+        # to add pt_ix to the nx segment.
+        break
+
+      # measure how close the other shared point was to the ix segment, but if the ix segment
+      # ends up having just 2 points, we want it consumed so set dist_ix to something large
+      dist_ix = threshold * 2
+      if get_point_quantity(segment_ix[ix][0], pt_ix) > 2:
+        dist_ix = point_to_line_distance(cartesian_points[segment_ix[ix][1] % point_count], \
+                                         (cartesian_points[segment_ix[ix][0] % point_count], \
+                                          cartesian_points[pt_ix % point_count]))
+
+      if dist_nx > dist_ix:
+        # moving the point back will make segments worse
+        break
+
+      # extend the next segment
+      segment_ix[nx][0] = pt_ix
+      # shrink the current segment
+      segment_ix[ix][1] = pt_ix
+
+  # Filter out short segments
+  segment_ix = [s for s in segment_ix if get_point_quantity(s[0], s[1]) >= min_points]
 
   segments = []
   for seg_ix in segment_ix:
@@ -126,8 +169,9 @@ def extract_segments(cartesian_points, threshold = 1.0, min_points = 2):
 def detect_corners_from_segments(segments, angle_threshold = math.pi/6):
   """ Detect corners from a list of segments based on the angle between them. """
   corners = []
-  for i in range(len(segments)):
-    j = (i + 1) % len(segments)
+  segment_count = len(segments)
+  for i in range(segment_count):
+    j = (i + 1) % segment_count
     angle = numpy.abs(normalize_angle(segment_angle(segments[i]) - segment_angle(segments[j])))
     if angle > angle_threshold:
       corners.append(line_line_intersection(segments[i], segments[j]))
