@@ -212,7 +212,8 @@ class Slam:
       return
 
     # Draw new samples based on the distribution
-    self.reinitialize_particles(num_particles = len(self.poses), threshold = 1.0 / len(self.poses))
+    resample_threshold = 1.0 / len(self.poses)
+    self.reinitialize_particles(num_particles = len(self.poses), threshold = resample_threshold)
 
     # Score each of the candidates
     for i, pose in enumerate(self.poses):
