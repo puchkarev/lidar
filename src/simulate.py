@@ -32,10 +32,10 @@ def run(repeat = True, frames = 100, animate = True):
 
   # Initial position and parameters of the robot
   initial_position = [400.0, 250.0, numpy.deg2rad(35.0)]
-  move_error = 3.0
-  turn_error = numpy.deg2rad(2.0)
+  move_error = 1.0
+  turn_error = numpy.deg2rad(1.0)
   sensor_noise = 5.0
-  sensor_angle_std_dev = numpy.deg2rad(2.0)
+  sensor_angle_std_dev = numpy.deg2rad(5.0)
 
   # Initialize the robot
   robot = SimulatedRobot(initial_position = initial_position, \

@@ -36,6 +36,8 @@ def projected_segment_endpoint_distance(segment1: list[list[float], list[float]]
       points += 1
   if points < 2:
     return float('inf')
+  #if numpy.abs(normalize_angle(segment_angle(segment1) - segment_angle(segment2))) > numpy.deg2rad(30.0):
+  #  return float('inf')
   return dist
 
 def point_to_line_distance(point: list[float], \
