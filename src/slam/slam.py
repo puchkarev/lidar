@@ -14,8 +14,8 @@ def DefaultSlamConfig():
     "SegmentMinimumPoints": 5, \
     "CornerAngleThreshold": numpy.deg2rad(30.0), \
     "MinFeaturesToLocalize": 3, \
-    "SegmentAssociationThreshold": 60.0, \
-    "CornerAssociationThreshold": 30.0, \
+    "SegmentAssociationThreshold": 20.0, \
+    "CornerAssociationThreshold": 20.0, \
     "IncreasePoseVariance": 1.0, \
     "IncreaseAngleVariance": numpy.deg2rad(1.0), \
     "ScoringSensorNoise": 50.0, \
@@ -23,6 +23,55 @@ def DefaultSlamConfig():
     "LocalizedAngleThreshold": numpy.deg2rad(5.0), \
     "Localizing": 1, \
   }
+
+def segment_to_segment_comparator(observed_segment, map_segment):
+  """Provides a distance measure between an observed segment and a mapped segment"""
+  # This measure is used to compare the segments for association and localization
+  # Note that map segments are generally expected to be longer and observed segments
+  # may be broken down in smaller chunks, so may represent sub-sections of wall segments
+
+  # The actual value returned does not matter, as long as we tune the segment association
+  # threshold to it. But the cost landscape needs to be such that as segments become more rotated
+  # or shifted, the larger the distance measure should be.
+
+  # This function just measures distances between endpoints of segments to the other segment
+  # it heavily penalizes the disparity between the mapped vs observed segment lengths
+  # 0.697s /54640 calls = 12.75622 us / call
+  # return segment_endpoint_distance(observed_segment, map_segment)
+
+  # This function just measures distances between the endpoints projected onto segments (if they
+  # project, and the endpoints themselves). It does not penalize short segments and does ok.
+  # 1.574s / 155,624 calls = 10.11412 us / call
+  # return projected_segment_endpoint_distance(observed_segment, map_segment)
+
+  # The implementation below specifically measures the properties we want:
+  # rotation - measured as how much to shift the endpoint so that the segment lines up with the map segment
+  # shift - how far to move the observed segment to line it up with the map segment
+  # gap - how much gap remains between the observed and mapped segments
+  # 2.346 s / 155,036 calls = 15.13196 us / call
+
+  o_ang = numpy.abs(normalize_angle(segment_angle(observed_segment)))
+  m_ang = numpy.abs(normalize_angle(segment_angle(map_segment)))
+
+  o_len = point_to_point_distance(observed_segment[0], observed_segment[1])
+  m_len = point_to_point_distance(map_segment[0], map_segment[1])
+
+  o_mid = interpolate_point_on_segment(observed_segment, 0.5)
+  m_mid = interpolate_point_on_segment(map_segment, 0.5)
+
+  # how much the endpoint moves to fix the orientation around the midpoint, note that for the same rotation
+  # this penalizes long segments more than short ones
+  alignment_shift = numpy.sin(numpy.abs(normalize_angle(o_ang - m_ang))) * o_len * 0.5
+
+  o_mid_projected = interpolate_point_on_segment(map_segment, projected_point_on_segment(o_mid, map_segment))
+
+  # how much we need to shift the observed segment after rotation to have it lie on the same line as map segment
+  shift_distance = point_to_point_distance(o_mid, o_mid_projected)
+
+  # the remaining gap between the map segment and observed segment after rotation and shifting.
+  gap_distance = max(point_to_point_distance(o_mid_projected, m_mid) - o_len * 0.5 - m_len * 0.5, 0.0)
+
+  return math.sqrt(alignment_shift ** 2 + shift_distance ** 2 + gap_distance ** 2)
 
 class Slam:
   def __init__(self, initial_position, robot_covariance, num_points, segments, config = DefaultSlamConfig()):
@@ -171,34 +220,19 @@ class Slam:
     self.corner_associations = []
     self.new_corners = seen_corners
 
-    if len(self.map_segments) + len(self.map_corners) < self.config["MinFeaturesToLocalize"]:
-      return
-
-    # sort the poses by weight (and add the mean as the best possible candidate)
-    scored_poses = [(self.robot_mean, 1.0)] # + [a for a in zip(self.poses, self.weights)]
-    scored_poses.sort(key = lambda x: x[1], reverse = True)
-
-    for pose, weight in scored_poses:
-      # we are not interested in any candidates which have been previously eliminated
-      if weight <= 0.0:
-        continue
-
-      # Perform assocation to the map features
-      self.association_pose = numpy.array(pose)
+    # Perform assocation to the map features
+    if self.config["SegmentAssociationThreshold"] > 0.0:
       self.segment_associations, self.new_segments, _ = associate_features( \
-        new_features = transform_segments(seen_segments, reference_pose, pose), \
+        new_features = seen_segments, \
         map_features = self.map_segments, \
-        scoring_function = projected_segment_endpoint_distance, \
+        scoring_function = segment_to_segment_comparator, \
         threshold = self.config["SegmentAssociationThreshold"])
+    if self.config["CornerAssociationThreshold"] > 0.0:
       self.corner_associations, self.new_corners, _ = associate_features( \
-        new_features = transform_points(seen_corners, reference_pose, pose), \
+        new_features = seen_corners, \
         map_features = self.map_corners, \
         scoring_function = point_to_point_distance, \
-         threshold = self.config["CornerAssociationThreshold"])
-
-      # Once we match enough features we can exit
-      if len(self.segment_associations) + len(self.corner_associations) >= self.config["MinFeaturesToLocalize"]:
-        break
+        threshold = self.config["CornerAssociationThreshold"])
 
   def localize(self, association_pose, segment_associations, corner_associations):
     # if we did not match enough features we can't score the candidates
@@ -226,7 +260,7 @@ class Slam:
         self.weights[i] *= score_pose(pose = pose, reference_pose = association_pose, \
                                       feature_associations = previewed_segments, \
                                       transform_function = None, \
-                                      scoring_function = projected_segment_endpoint_distance, \
+                                      scoring_function = segment_to_segment_comparator, \
                                       sensor_noise = self.config["ScoringSensorNoise"])
 
       if len(corner_associations) > 0:
