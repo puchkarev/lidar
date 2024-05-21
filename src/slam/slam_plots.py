@@ -12,6 +12,8 @@ class PlotData:
     self.vals_pose_std_dev = []
     self.vals_angle_std_dev = []
     self.vals_particles = []
+    self.vals_max_score = []
+    self.vals_good_particles = []
     self.vals_matched_segments = []
     self.vals_total_segments = []
     self.vals_matched_corners = []
@@ -40,6 +42,8 @@ class PlotData:
       self.vals_pose_std_dev.append(math.sqrt(mapping.robot_covariance[0][0] + mapping.robot_covariance[1][1]))
       self.vals_angle_std_dev.append(numpy.rad2deg(math.sqrt(mapping.robot_covariance[2][2])))
       self.vals_particles.append(len(mapping.poses))
+      self.vals_max_score.append(max(mapping.weights) * 100.0)
+      self.vals_good_particles.append(len([m for m in mapping.weights if m > (1.0 / len(mapping.weights))]))
       self.vals_matched_segments.append(len(mapping.segment_associations))
       self.vals_total_segments.append(len(mapping.segment_associations) + len(mapping.new_segments))
       self.vals_matched_corners.append(len(mapping.corner_associations))
@@ -78,6 +82,8 @@ class PlotData:
     tr(self.vals_pose_std_dev)
     tr(self.vals_angle_std_dev)
     tr(self.vals_particles)
+    tr(self.vals_max_score)
+    tr(self.vals_good_particles)
     tr(self.vals_matched_segments)
     tr(self.vals_total_segments)
     tr(self.vals_matched_corners)
@@ -202,5 +208,11 @@ class PlotData:
     if len(self.vals_frame_nums) == len(self.vals_particles):
       graph_plot4.plot(self.vals_frame_nums, self.vals_particles)
       legend4.append("particles")
+    if len(self.vals_frame_nums) == len(self.vals_max_score):
+      graph_plot4.plot(self.vals_frame_nums, self.vals_max_score)
+      legend4.append("max_score")
+    if len(self.vals_frame_nums) == len(self.vals_good_particles):
+      graph_plot4.plot(self.vals_frame_nums, self.vals_good_particles)
+      legend4.append("good_particles")
     graph_plot4.legend(legend4, loc='upper left')
 

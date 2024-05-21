@@ -51,7 +51,7 @@ def run(repeat = True, frames = 100, animate = True):
   # Initialize the mapping environment.
   mapping = Slam(initial_position=initial_position, \
                  robot_covariance=[[25.0, 0.0, 0.0], [0.0, 25.0, 0.0], [0.0, 0.0, numpy.deg2rad(25.0)]], \
-                 num_points=10,
+                 num_points=20,
                  segments = segments)
 
   # Set up the plotting
