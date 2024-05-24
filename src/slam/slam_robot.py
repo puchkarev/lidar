@@ -29,26 +29,8 @@ class SimulatedRobot:
 
     # Calculate movement with added noise
     noisy_distance = distance + numpy.random.normal(0, self.noise_std_dev)
-    dx = noisy_distance * numpy.cos(self.position[2])
-    dy = noisy_distance * numpy.sin(self.position[2])
-
-    new_position = self.position + numpy.array([dx, dy, 0.0])
-    # check for collisions
-    has_collision = False
-    pt_old = [self.position[0], self.position[1]]
-    pt_new = [new_position[0], new_position[1]]
-    for segment in self.segments:
-      path_dist = segment_to_segment_distance((pt_old, pt_new), segment)
-      if path_dist < 10.0:
-        if point_to_segment_distance(pt_old, segment) > path_dist:
-          has_collision = True
-          break
-
-    # If we have collided inform the caller
-    if has_collision:
-      return False
-
-    self.position = new_position
+    self.position[0] += noisy_distance * numpy.cos(self.position[2])
+    self.position[1] += noisy_distance * numpy.sin(self.position[2])
     return True
 
   def sense_environment(self):
