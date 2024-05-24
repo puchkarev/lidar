@@ -112,6 +112,10 @@ def run(repeat = True, frames = 100, animate = True):
 
   # start the animation
   ani = animation.FuncAnimation(fig1, update, frames=frames, repeat=repeat, cache_frame_data=False, interval=1)
+
+  #writer = animation.PillowWriter(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+  #ani.save('animation.gif', writer=writer)
+
   plt.show()
 
 if __name__ == '__main__':
