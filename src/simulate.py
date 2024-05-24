@@ -68,10 +68,12 @@ def run(repeat = True, frames = 100, animate = True):
       turn_angle = 0
 
     # If we chose to move or turn, then move the robot and let mapping know
-    if move_distance != 0.0 or turn_angle != 0.0:
-      moved = robot.move(distance = move_distance, rotation = turn_angle)
-      mapping.move_robot(move_distance = move_distance, rotate_angle = turn_angle, \
-                         distance_error = move_error, rotation_error = turn_error)
+    if move_distance != 0.0:
+      moved = robot.move(distance = move_distance)
+      mapping.move_robot(move_distance = move_distance, distance_error = move_error)
+    if turn_angle != 0.0:
+      moved = robot.rotate(rotation = turn_angle)
+      mapping.rotate_robot(rotate_angle = turn_angle, rotation_error = turn_error)
 
     # update the mapping invironment based on lidar data
     lidar_data = robot.sense_environment()

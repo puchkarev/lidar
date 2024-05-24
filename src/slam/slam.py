@@ -312,18 +312,26 @@ class Slam:
     if self.config["Localizing"] == 1:
       self.localize(self.association_pose, self.segment_associations, self.corner_associations)
 
-  def move_robot(self, move_distance, rotate_angle, distance_error, rotation_error):
+  def move_robot(self, move_distance, distance_error):
     """Informs slam of the robot movement"""
-    best_guess = [move_distance, rotate_angle]
     for i, p in enumerate(self.poses):
-      move_error = numpy.random.normal(0, distance_error)
-      rotation_error1 = numpy.random.normal(0, rotation_error)
-      rotation_error2 = numpy.random.normal(0, rotation_error)
+      noisy_distance = move_distance + numpy.random.normal(0, distance_error)
+      new_pose = [p[0] + noisy_distance * numpy.cos(p[2]), \
+                  p[1] + noisy_distance * numpy.sin(p[2]), \
+                  p[2]]
+      self.poses[i] = new_pose
 
-      new_pose = [p[0] + (move_distance + move_error) * numpy.cos(p[2] + rotate_angle + rotation_error1), \
-                  p[1] + (move_distance + move_error) * numpy.sin(p[2] + rotate_angle + rotation_error1), \
-                  normalize_angle(p[2] + rotate_angle + rotation_error2)]
+    # estimate best robot position from particles
+    self.robot_mean, self.robot_covariance = compute_mean_and_covariance(self.poses, self.weights)
 
+    # update whether we are localized based on the covariance
+    self.localized = self.localized and self.is_localized_from_covariance(self.robot_covariance)
+
+  def rotate_robot(self, rotate_angle, rotation_error):
+    """Informs slam of the robot movement"""
+    for i, p in enumerate(self.poses):
+      noisy_angle = rotate_angle + numpy.random.normal(0, rotation_error)
+      new_pose = [p[0], p[1], normalize_angle(p[2] + noisy_angle)]
       self.poses[i] = new_pose
 
     # estimate best robot position from particles

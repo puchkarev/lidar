@@ -18,20 +18,20 @@ class SimulatedRobot:
     self.field_of_view = field_of_view  # Field of view for LIDAR in degrees
     self.max_distance = max_distance  # Maximum sensing distance for LIDAR
 
-  def move(self, distance, rotation):
+  def move(self, distance):
     """
-    Move the robot a certain distance and rotation, with noise affecting both.
-    Rotation should be in radians. Rotation is applied first.
+    Move the robot a certain distance with noise.
     """
-    # Introduce noise to rotation and convert to radians
-    noisy_rotation = rotation + numpy.random.normal(0, self.angle_noise_std_dev)
-    self.position[2] = normalize_angle(self.position[2] + noisy_rotation)
-
-    # Calculate movement with added noise
     noisy_distance = distance + numpy.random.normal(0, self.noise_std_dev)
     self.position[0] += noisy_distance * numpy.cos(self.position[2])
     self.position[1] += noisy_distance * numpy.sin(self.position[2])
-    return True
+
+  def rotate(self, rotation):
+    """
+    Rotate the robot a certain angle with noise.
+    """
+    noisy_rotation = rotation + numpy.random.normal(0, self.angle_noise_std_dev)
+    self.position[2] = normalize_angle(self.position[2] + noisy_rotation)
 
   def sense_environment(self):
     """
