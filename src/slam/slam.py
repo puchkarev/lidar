@@ -14,8 +14,8 @@ def DefaultSlamConfig():
     "SegmentMinimumPoints": 5, \
     "CornerAngleThreshold": numpy.deg2rad(30.0), \
     "MinFeaturesToLocalize": 3, \
-    "SegmentAssociationThreshold": 20.0, \
-    "CornerAssociationThreshold": 20.0, \
+    "SegmentAssociationThreshold": 50.0, \
+    "CornerAssociationThreshold": 50.0, \
     "IncreasePoseVariance": 1.0, \
     "IncreaseAngleVariance": numpy.deg2rad(1.0), \
     "ScoringSensorNoise": 50.0, \
