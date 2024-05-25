@@ -112,8 +112,14 @@ def run(repeat = True, frames = 100, animate = True):
 
       map_plot.cla()
       map_plot.set_aspect('equal')
-      map_plot.set_xlim([0, 600])
-      map_plot.set_ylim([0, 600])
+
+      min_x = min([min(s[0][0], s[1][0]) for s in get_map()])
+      max_x = max([max(s[0][0], s[1][0]) for s in get_map()])
+      map_plot.set_xlim([min_x - 100, max_x + 100])
+      min_y = min([min(s[0][1], s[1][1]) for s in get_map()])
+      max_y = max([max(s[0][1], s[1][1]) for s in get_map()])
+      map_plot.set_ylim([min_y - 100, max_y + 100])
+
       plot_data.plot_reality(robot = robot, map_plot = map_plot)
       plot_data.plot_mapping(mapping = mapping, map_plot = map_plot)
 
