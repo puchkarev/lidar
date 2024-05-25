@@ -8,6 +8,18 @@ def normalize_angle(angle: float):
     angle -= math.pi * 2;
   return angle
 
+def lerp(v1, v2, f):
+  """Lenarly interpolates between v1 and v2 as a fraction f"""
+  return v1 + (v2 - v1) * f
+
+def clamped_linear(x0, y0, x1, y1, x):
+  """Returns the value at x over a clamped function"""
+  if x <= x0:
+    return y0
+  if x >= x1:
+    return y1
+  return y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+
 def point_to_point_distance(p0: list[float], \
                             p1: list[float]):
   """Returns distance between two points"""

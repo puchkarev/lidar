@@ -59,7 +59,7 @@ def run(repeat = True, frames = 100, animate = True):
     plt.subplots(5, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1]})
   plt.subplots_adjust(wspace=0, hspace=0)
 
-  drive_type = 0
+  drive_type = 1
 
   def handle_robot():
 
