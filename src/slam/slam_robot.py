@@ -2,6 +2,7 @@
 import numpy
 
 from slam.slam_geometry import *
+from slam.slam_kinematics import *
 
 class SimulatedRobot:
   def __init__(self, initial_position, segments, \
@@ -17,6 +18,34 @@ class SimulatedRobot:
     self.num_points = num_points  # Number of LIDAR points
     self.field_of_view = field_of_view  # Field of view for LIDAR in degrees
     self.max_distance = max_distance  # Maximum sensing distance for LIDAR
+
+    # starting motor speeds
+    self.left = 0.0
+    self.right = 0.0
+
+    # wheelbase of the robot
+    self.wheel_base = 50.0
+
+  def set_speed(self, left, right):
+    """
+    Sets the left and right motor speeds for a differential drive robot
+    """
+    self.left = left
+    self.right = right
+
+  def advance_time(self, dt):
+    """
+    Advances the time for a differential drive robot
+    """
+    turn1, dist2, turn3 = get_turn_move_turn_from_differential_drive(vL = self.left, vR = self.right, base = self.wheel_base, dt = dt)
+    if turn1 != 0.0:
+      self.rotate(turn1)
+    if dist2 != 0.0:
+      self.move(dist2)
+    if turn3 != 0.0:
+      self.rotate(turn3)
+
+    return turn1, dist2, turn3
 
   def move(self, distance):
     """

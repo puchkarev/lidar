@@ -28,6 +28,13 @@ def get_turn_move_turn(x0, y0, theta0, x1, y1, theta1, backward = False):
 
   return normalize_angle(direction - theta0), math.hypot(y1 - y0, x1 - x0), normalize_angle(theta1 - direction)
 
+def get_turn_move_turn_from_differential_drive(vL, vR, base, dt):
+  """
+  Returns the turn, move, turn operation for a differential drive with speeds and wheel base
+  """
+  (x1, y1, th1) = differential_drive(x0 = 0.0, y0 = 0.0, theta0 = 0.0, vL = vL, vR = vR, base = base, dt = dt)
+  return get_turn_move_turn(x0 = 0.0, y0 = 0.0, theta0 = 0.0, x1 = x1, y1 = y1, theta1 = th1, backward = False)
+
 def differential_drive(x0, y0, theta0, vL, vR, base, dt):
   """Updates the position of the robot with differential drive"""
   if vL == vR:

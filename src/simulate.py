@@ -7,8 +7,9 @@ import numpy
 import pickle
 
 from slam.slam_geometry import normalize_angle
+from slam.slam_kinematics import *
 from slam.slam_plots import PlotData
-from slam.slam_planner import plan_motion_from_lidar
+from slam.slam_planner import *
 from slam.slam_robot import SimulatedRobot
 from slam.slam import Slam
 
@@ -58,24 +59,44 @@ def run(repeat = True, frames = 100, animate = True):
     plt.subplots(5, gridspec_kw={'height_ratios': [4, 1, 1, 1, 1]})
   plt.subplots_adjust(wspace=0, hspace=0)
 
+  drive_type = 0
+
   def handle_robot():
-    # Pick the movement direction and angle
-    move_distance, turn_angle = plan_motion_from_lidar(mapping.lidar_points)
 
     # Determine if we are moving or staying put, on large error do not move
-    if not mapping.localized:
-      move_distance = 0
-      turn_angle = 0
+    if drive_type == 0:
+      # Pick the movement direction and angle
+      move_distance, turn_angle = plan_motion_from_lidar(mapping.lidar_points, mapping.localized)
 
-    # If we chose to move or turn, then move the robot and let mapping know
-    if move_distance != 0.0:
-      moved = robot.move(distance = move_distance)
+      # Move the robot
+      robot.move(distance = move_distance)
+      robot.rotate(rotation = turn_angle)
+
+      # Inform mapping of motion
       mapping.move_robot(move_distance = move_distance, distance_error = move_error)
-    if turn_angle != 0.0:
-      moved = robot.rotate(rotation = turn_angle)
       mapping.rotate_robot(rotate_angle = turn_angle, rotation_error = turn_error)
 
-    # update the mapping invironment based on lidar data
+    elif drive_type == 1:
+      old_left = robot.left
+      old_right = robot.right
+
+      # Pick the speeds for the motors
+      left, right = plan_speeds_from_lidar(mapping.lidar_points, mapping.localized)
+
+      # Move the robot
+      robot.advance_time(dt = 1.0)
+      robot.set_speed(left, right)
+
+      # Inform mapping of motion
+      turn1, dist2, turn3 = get_turn_move_turn_from_differential_drive(vL = old_left, vR = old_right, base = robot.wheel_base, dt = 1.0)
+      if turn1 != 0.0:
+        mapping.rotate_robot(rotate_angle = turn1, rotation_error = turn_error)
+      if dist2 != 0.0:
+        mapping.move_robot(move_distance = dist2, distance_error = move_error)
+      if turn3 != 0.0:
+        mapping.rotate_robot(rotate_angle = turn3, rotation_error = turn_error)
+
+    # update the mapping environment based on lidar data
     lidar_data = robot.sense_environment()
     mapping.lidar_update(lidar_data)
 
