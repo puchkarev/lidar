@@ -216,6 +216,11 @@ def transform_point(point, original_pose, new_pose):
 
 def transform_points(points, original_pose, new_pose):
   """Transforms a colleciton of points as seen from some original pose, to a point seen from the new pose"""
+  if (original_pose[0] == new_pose[0] and \
+      original_pose[1] == new_pose[1] and \
+      original_pose[2] == new_pose[2]):
+    return points
+
   angle1_cos = math.cos(-original_pose[2])
   angle1_sin = math.sin(-original_pose[2])
   r1 = numpy.array([[angle1_cos, -angle1_sin],
@@ -243,6 +248,11 @@ def transform_segment(segment, original_pose, new_pose):
 
 def transform_segments(segments, original_pose, new_pose):
   """Transforms a colleciton of segments as seen from some original pose, to a point seen from the new pose"""
+  if (original_pose[0] == new_pose[0] and \
+      original_pose[1] == new_pose[1] and \
+      original_pose[2] == new_pose[2]):
+    return segments
+
   q = len(segments)
   points = [s[0] for s in segments] + [s[1] for s in segments]
   transformed = transform_points(points, original_pose = original_pose, new_pose = new_pose)

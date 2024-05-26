@@ -14,7 +14,7 @@ def DefaultSlamConfig():
     "SegmentMinimumPoints": 5, \
     "CornerAngleThreshold": numpy.deg2rad(30.0), \
     "MinFeaturesToLocalize": 3, \
-    "SegmentAssociationThreshold": 100.0, \
+    "SegmentAssociationThreshold": 200.0, \
     "CornerAssociationThreshold": 100.0, \
     "IncreasePoseVariance": 1.0, \
     "IncreaseAngleVariance": numpy.deg2rad(1.0), \
@@ -199,47 +199,44 @@ class Slam:
 
   def extract_features(self, lidar_data, reference_pose, lidar_offset):
     """Extracts the features from the lidar data using the reference pose"""
-
-    # This is the pose from which lidar points are provided.
-    self.reference_pose = reference_pose
-
     # Compute the location of lidar.
-    lidar_pose = to_world_from_ref(lidar_offset, self.reference_pose)
+    lidar_pose = to_world_from_ref(lidar_offset, reference_pose)
 
     # convert the lidar data into cartesian data
-    self.cartesian_points = polar_to_cartesian(lidar_data, lidar_pose)
+    cartesian_points = polar_to_cartesian(lidar_data, lidar_pose)
 
     # Extract the features
-    self.seen_segments = extract_segments(self.cartesian_points, \
-                                          threshold = self.config["SegmentDistanceThreshold"], \
-                                          min_points = self.config["SegmentMinimumPoints"])
-    self.seen_corners = detect_corners_from_segments(self.seen_segments, \
-                                                     angle_threshold = self.config["CornerAngleThreshold"])
+    seen_segments = extract_segments(cartesian_points, \
+                                     threshold = self.config["SegmentDistanceThreshold"], \
+                                     min_points = self.config["SegmentMinimumPoints"])
+    seen_corners = detect_corners_from_segments(seen_segments, \
+                                                angle_threshold = self.config["CornerAngleThreshold"])
+    return cartesian_points, seen_segments, seen_corners
 
-  def associate_features(self, reference_pose, seen_segments, seen_corners):
+  def associate_features(self, reference_pose, association_pose, seen_segments, seen_corners):
     """Associate the features to the reference map"""
 
     # We first assume that no association is possibe to handle the case with
     # an incomplete map.
-    self.association_pose = reference_pose
-    self.segment_associations = []
-    self.new_segments = seen_segments
-    self.corner_associations = []
-    self.new_corners = seen_corners
+    segment_associations = []
+    new_segments = transform_segments(seen_segments, reference_pose, association_pose)
+    corner_associations = []
+    new_corners = transform_points(seen_corners, reference_pose, association_pose)
 
     # Perform assocation to the map features
     if self.config["SegmentAssociationThreshold"] > 0.0:
-      self.segment_associations, self.new_segments, _ = associate_features( \
-        new_features = seen_segments, \
+      segment_associations, new_segments, _ = associate_features( \
+        new_features = new_segments, \
         map_features = self.map_segments, \
         scoring_function = segment_to_segment_comparator, \
         threshold = self.config["SegmentAssociationThreshold"])
     if self.config["CornerAssociationThreshold"] > 0.0:
-      self.corner_associations, self.new_corners, _ = associate_features( \
-        new_features = seen_corners, \
+      corner_associations, new_corners, _ = associate_features( \
+        new_features = new_corners, \
         map_features = self.map_corners, \
         scoring_function = point_to_point_distance, \
         threshold = self.config["CornerAssociationThreshold"])
+    return segment_associations, new_segments, corner_associations, new_corners
 
   def localize(self, association_pose, segment_associations, corner_associations):
     # if we did not match enough features we can't score the candidates
@@ -310,10 +307,17 @@ class Slam:
 
     # Extract the features using mean pose as the reference pose
     self.lidar_points = lidar_data
-    self.extract_features(lidar_data, self.robot_mean, self.lidar_offset)
+    self.reference_pose = self.robot_mean
+    self.cartesian_points, self.seen_segments, self.seen_corners = \
+      self.extract_features(lidar_data, self.reference_pose, self.lidar_offset)
 
     # Associate the features to the map
-    self.associate_features(self.reference_pose, self.seen_segments, self.seen_corners)
+    self.association_pose = self.robot_mean
+    self.segment_associations, self.new_segments, self.corner_associations, self.new_corners = \
+      self.associate_features(reference_pose = self.reference_pose, \
+                              association_pose = self.association_pose, \
+                              seen_segments = self.seen_segments, \
+                              seen_corners = self.seen_corners)
 
     # Perform localization
     if self.config["Localizing"] == 1:
