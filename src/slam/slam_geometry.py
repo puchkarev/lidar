@@ -201,6 +201,15 @@ def polar_to_cartesian(lidar_data, pose):
 
   return cartesian_points
 
+def to_world_from_ref(point, ref):
+  """Transforms a point from a reference frame to world coordinates"""
+  dx = point[0] * numpy.cos(ref[2]) - point[1] * numpy.sin(ref[2])
+  dy = point[0] * numpy.sin(ref[2]) + point[1] * numpy.cos(ref[2])
+  if len(point) == 2:
+    return [ref[0] + dx, ref[1] + dy]
+  else:
+    return [ref[0] + dx, ref[1] + dy, normalize_angle(ref[2] + point[2])]
+
 def transform_point(point, original_pose, new_pose):
   """Transforms a point as seen from some original pose, to a point seen from the new pose"""
   return transform_points([point], original_pose, new_pose)[0]

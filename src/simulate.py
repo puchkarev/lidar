@@ -11,44 +11,51 @@ from slam.slam_kinematics import *
 from slam.slam_plots import PlotData
 from slam.slam_planner import *
 from slam.slam_robot import SimulatedRobot
-from slam.slam import Slam
+from slam.slam import Slam, DefaultSlamConfig
 
 def get_map():
   return [
-    ((100,100),(200,100)),
-    ((200,100),(200,150)),
-    ((200,150),(300,150)),
-    ((300,150),(300,100)),
-    ((300,100),(500,100)),
-    ((500,100),(500,200)),
-    ((500,200),(800,200)),
-    ((800,200),(800,500)),
-    ((800,500),(1000,500)),
-    ((1000,500),(1000,100)),
-    ((1000,100),(1500,100)),
-    ((1500,100),(1500,1500)),
-    ((1500,1500),(1300,1500)),
-    ((1300,1500),(1300,1300)),
-    ((1300,1300),(800,1300)),
-    ((800,1300),(800,1400)),
-    ((800,1400),(1000,1400)),
-    ((1000,1400),(1000,1600)),
-    ((1000,1600),(400,1600)),
-    ((400,1600),(400,1000)),
-    ((400,1000),(600,1000)),
-    ((600,1000),(600,700)),
-    ((600,700),(300,700)),
-    ((300,700),(300,500)),
-    ((300,500),(100,500)),
-    ((100,500),(100,100))
+    ((1000,1000),(2000,1000)),
+    ((2000,1000),(2000,1500)),
+    ((2000,1500),(3000,1500)),
+    ((3000,1500),(3000,1000)),
+    ((3000,1000),(5000,1000)),
+    ((5000,1000),(5000,2000)),
+    ((5000,2000),(8000,2000)),
+    ((8000,2000),(8000,5000)),
+    ((8000,5000),(10000,5000)),
+    ((10000,5000),(10000,1000)),
+    ((10000,1000),(15000,1000)),
+    ((15000,1000),(15000,15000)),
+    ((15000,15000),(13000,15000)),
+    ((13000,15000),(13000,13000)),
+    ((13000,13000),(8000,13000)),
+    ((8000,13000),(8000,14000)),
+    ((8000,14000),(10000,14000)),
+    ((10000,14000),(10000,16000)),
+    ((10000,16000),(4000,16000)),
+    ((4000,16000),(4000,10000)),
+    ((4000,10000),(6000,10000)),
+    ((6000,10000),(6000,7000)),
+    ((6000,7000),(3000,7000)),
+    ((3000,7000),(3000,5000)),
+    ((3000,5000),(1000,5000)),
+    ((1000,5000),(1000,1000))
   ]
 
 def run(repeat = True, frames = 100, animate = True):
   # Define the environment
   segments = get_map()
 
-  # Initial position and parameters of the robot
-  initial_position = [400.0, 250.0, numpy.deg2rad(35.0)]
+  # Parameters of the robot
+  robot_params = {
+    "lidar_offset": [10.0, 5.0, numpy.deg2rad(2.0)],
+    "wheel_base": 150.0,
+    "contour": [[100.0, 75.0], [100.0, -75.0], [-100.0, -75.0], [-100.0, 75.0]],
+  }
+
+  # Initial position and error parameters of simulation
+  initial_position = [4000.0, 2500.0, numpy.deg2rad(35.0)]
   move_error = 2.0
   turn_error = numpy.deg2rad(2.0)
   sensor_noise = 5.0
@@ -63,13 +70,16 @@ def run(repeat = True, frames = 100, animate = True):
                          sensor_angle_std_dev = sensor_angle_std_dev, \
                          num_points = 100, \
                          field_of_view = numpy.deg2rad(360.0), \
-                         max_distance = 1000.0)
+                         max_distance = 10000.0, \
+                         lidar_offset = robot_params["lidar_offset"], \
+                         wheel_base = robot_params["wheel_base"], \
+                         robot_contour = robot_params["contour"])
 
   # Initialize the mapping environment.
   mapping = Slam(initial_position=initial_position, \
                  robot_covariance=[[25.0, 0.0, 0.0], [0.0, 25.0, 0.0], [0.0, 0.0, numpy.deg2rad(25.0)]], \
-                 num_points=20,
-                 segments = segments)
+                 num_points=50, segments = segments, lidar_offset = robot_params["lidar_offset"], \
+                 robot_params = robot_params, config = DefaultSlamConfig())
 
   # Set up the plotting
   plot_data = PlotData()
@@ -106,12 +116,10 @@ def run(repeat = True, frames = 100, animate = True):
       robot.set_speed(left, right)
 
       # Inform mapping of motion
-      turn1, dist2, turn3 = get_turn_move_turn_from_differential_drive(vL = old_left, vR = old_right, base = robot.wheel_base, dt = 1.0)
-      if turn1 != 0.0:
+      turn1, dist2, turn3 = get_turn_move_turn_from_differential_drive(vL = old_left, vR = old_right, base = robot_params["wheel_base"], dt = 1.0)
+      if turn1 != 0.0 or dist2 != 0.0 or turn3 != 0.0:
         mapping.rotate_robot(rotate_angle = turn1, rotation_error = turn_error)
-      if dist2 != 0.0:
         mapping.move_robot(move_distance = dist2, distance_error = move_error)
-      if turn3 != 0.0:
         mapping.rotate_robot(rotate_angle = turn3, rotation_error = turn_error)
 
     # update the mapping environment based on lidar data

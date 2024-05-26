@@ -99,62 +99,80 @@ class PlotData:
 
   def plot_reality(self, robot, map_plot):
     # show the actual map that the robot understands
-    for segment in robot.segments:
-      map_plot.plot([segment[0][0], segment[1][0]], \
-                    [segment[0][1], segment[1][1]], 'k-')
+    if True:
+      for segment in robot.segments:
+        map_plot.plot([segment[0][0], segment[1][0]], \
+                      [segment[0][1], segment[1][1]], 'k-')
 
     # show the real robot position
-    face = 10.0
-    map_plot.plot([robot.position[0]], \
-                  [robot.position[1]], 'bo', markersize=7)
-    map_plot.plot([robot.position[0], robot.position[0] + face * numpy.cos(robot.position[2])], \
-                  [robot.position[1], robot.position[1] + face * numpy.sin(robot.position[2])], 'b-', markersize=1)
+    if True:
+      face = 10.0
+      map_plot.plot([robot.position[0]], \
+                    [robot.position[1]], 'bo', markersize=7)
+      map_plot.plot([robot.position[0], robot.position[0] + face * numpy.cos(robot.position[2])], \
+                    [robot.position[1], robot.position[1] + face * numpy.sin(robot.position[2])], 'b-', markersize=1)
 
   def plot_mapping(self, mapping, map_plot):
     # show the robot position distribution
-    face = 5.0
-    map_plot.plot([p[0] for p in mapping.poses], \
-                  [p[1] for p in mapping.poses], 'ro', markersize=1)
-    for p in mapping.poses:
-      map_plot.plot([p[0], p[0] + face * numpy.cos(p[2])], \
-                    [p[1], p[1] + face * numpy.sin(p[2])], 'r-', markersize=1)
+    if True:
+      face = 5.0
+      map_plot.plot([p[0] for p in mapping.poses], \
+                    [p[1] for p in mapping.poses], 'ro', markersize=1)
+      for p in mapping.poses:
+        map_plot.plot([p[0], p[0] + face * numpy.cos(p[2])], \
+                      [p[1], p[1] + face * numpy.sin(p[2])], 'r-', markersize=1)
 
 
     # show the mean of the distribution
-    face = 10.0
-    map_plot.plot([mapping.robot_mean[0]], \
-                  [mapping.robot_mean[1]], 'ro', markersize=5)
-    map_plot.plot([mapping.robot_mean[0], mapping.robot_mean[0] + face * numpy.cos(mapping.robot_mean[2])], \
-                  [mapping.robot_mean[1], mapping.robot_mean[1] + face * numpy.sin(mapping.robot_mean[2])], \
-                   'r-', markersize=1)
+    if True:
+      face = 10.0
+      map_plot.plot([mapping.robot_mean[0]], \
+                    [mapping.robot_mean[1]], 'ro', markersize=5)
+      map_plot.plot([mapping.robot_mean[0], mapping.robot_mean[0] + face * numpy.cos(mapping.robot_mean[2])], \
+                    [mapping.robot_mean[1], mapping.robot_mean[1] + face * numpy.sin(mapping.robot_mean[2])], \
+                     'r-', markersize=1)
+      # Also draw where the lidar is and where it is facing
+      lidar_pose = to_world_from_ref(mapping.lidar_offset, mapping.robot_mean)
+      map_plot.plot([lidar_pose[0], lidar_pose[0] + face * numpy.cos(lidar_pose[2])], \
+                    [lidar_pose[1], lidar_pose[1] + face * numpy.sin(lidar_pose[2])], \
+                     'r-', markersize=1)
+      # And draw the contour of the robot
+      adjusted_contour = [to_world_from_ref(p, mapping.robot_mean) \
+                          for p in mapping.robot_params["contour"]]
+      map_plot.plot([p[0] for p in adjusted_contour] + [adjusted_contour[0][0]], \
+                    [p[1] for p in adjusted_contour] + [adjusted_contour[0][1]], \
+                     'r-', markersize=1)
 
     # show the features we have from the mapping map
-    for segment in mapping.map_segments:
-      map_plot.plot([segment[0][0], segment[1][0]], \
-                    [segment[0][1], segment[1][1]], 'b-')
-    for corner in mapping.map_corners:
-      map_plot.plot([corner[0]], \
-                    [corner[1]], 'bo', markersize = 5)
+    if True:
+      for segment in mapping.map_segments:
+        map_plot.plot([segment[0][0], segment[1][0]], \
+                      [segment[0][1], segment[1][1]], 'b-')
+      for corner in mapping.map_corners:
+        map_plot.plot([corner[0]], \
+                      [corner[1]], 'bo', markersize = 5)
 
     # show the lidar returns
-    map_plot.plot([p[0] for p in mapping.cartesian_points], \
-                  [p[1] for p in mapping.cartesian_points], 'bo', markersize=1)
+    if True:
+      map_plot.plot([p[0] for p in mapping.cartesian_points], \
+                    [p[1] for p in mapping.cartesian_points], 'bo', markersize=1)
 
     # show the features that we have from extraction
-    for segment_association in mapping.segment_associations:
-      segment = segment_association[0]
-      map_plot.plot([segment[0][0], segment[1][0]], \
-                    [segment[0][1], segment[1][1]], 'g-')
-    for segment in mapping.new_segments:
-      map_plot.plot([segment[0][0], segment[1][0]], \
-                    [segment[0][1], segment[1][1]], 'r-')
-    for corner_association in mapping.corner_associations:
-      corner = corner_association[0]
-      map_plot.plot([corner[0]], \
-                    [corner[1]], 'go', markersize = 5)
-    for corner in mapping.new_corners:
-      map_plot.plot([corner[0]], \
-                    [corner[1]], 'ro', markersize = 5)
+    if True:
+      for segment_association in mapping.segment_associations:
+        segment = segment_association[0]
+        map_plot.plot([segment[0][0], segment[1][0]], \
+                      [segment[0][1], segment[1][1]], 'g-')
+      for segment in mapping.new_segments:
+        map_plot.plot([segment[0][0], segment[1][0]], \
+                      [segment[0][1], segment[1][1]], 'r-')
+      for corner_association in mapping.corner_associations:
+        corner = corner_association[0]
+        map_plot.plot([corner[0]], \
+                      [corner[1]], 'go', markersize = 5)
+      for corner in mapping.new_corners:
+        map_plot.plot([corner[0]], \
+                      [corner[1]], 'ro', markersize = 5)
 
   def plot_graphs(self, map_plot, graph_plot1, graph_plot2, graph_plot3, graph_plot4):
     if len(self.vals_actual_pose_x) == len(self.vals_actual_pose_y):

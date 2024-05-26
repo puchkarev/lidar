@@ -8,7 +8,9 @@ class SimulatedRobot:
   def __init__(self, initial_position, segments, \
                noise_std_dev = 1.0, angle_noise_std_dev = 0.5, \
                sensor_noise = 0.1, sensor_angle_std_dev = 0.1, \
-               num_points = 100, field_of_view = numpy.deg2rad(360.0), max_distance = 100):
+               num_points = 100, field_of_view = numpy.deg2rad(360.0), max_distance = 100, \
+               lidar_offset = [0.0, 0.0, numpy.deg2rad(0.0)], \
+               wheel_base = 50.0, robot_contour = [(100.0, 75.0), (100.0, -75.0), (-100.0, -75.0), (-100.0, 75.0)]):
     self.position = numpy.array(initial_position) # Actual position of the robot
     self.segments = segments # The representation of the world as a series of segmnets
     self.noise_std_dev = noise_std_dev  # Noise standard deviation for movement
@@ -18,13 +20,13 @@ class SimulatedRobot:
     self.num_points = num_points  # Number of LIDAR points
     self.field_of_view = field_of_view  # Field of view for LIDAR in degrees
     self.max_distance = max_distance  # Maximum sensing distance for LIDAR
+    self.lidar_offset = lidar_offset # Position of the lidar relative to center of the robot
+    self.wheel_base = wheel_base # Distance between robot wheels
+    self.contour = robot_contour # Contour of the robot
 
     # starting motor speeds
     self.left = 0.0
     self.right = 0.0
-
-    # wheelbase of the robot
-    self.wheel_base = 50.0
 
   def set_speed(self, left, right):
     """
@@ -67,8 +69,9 @@ class SimulatedRobot:
     Simulate sensing the environment using integrated LIDAR settings.
     """
     sensed_data = []
+    lidar_position = numpy.array(to_world_from_ref(self.lidar_offset, self.position))
     for angle in numpy.linspace(0, numpy.rad2deg(self.field_of_view), self.num_points):
-      distance = self.sense(self.position, numpy.deg2rad(angle) + self.position[2], self.max_distance)
+      distance = self.sense(lidar_position, numpy.deg2rad(angle) + lidar_position[2], self.max_distance)
       if distance < self.max_distance:
         sensed_data.append((1, angle + numpy.random.normal(0, self.sensor_angle_std_dev), \
                             distance + numpy.random.normal(0, self.sensor_noise)))

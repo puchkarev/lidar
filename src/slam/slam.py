@@ -14,12 +14,12 @@ def DefaultSlamConfig():
     "SegmentMinimumPoints": 5, \
     "CornerAngleThreshold": numpy.deg2rad(30.0), \
     "MinFeaturesToLocalize": 3, \
-    "SegmentAssociationThreshold": 50.0, \
-    "CornerAssociationThreshold": 50.0, \
+    "SegmentAssociationThreshold": 100.0, \
+    "CornerAssociationThreshold": 100.0, \
     "IncreasePoseVariance": 1.0, \
     "IncreaseAngleVariance": numpy.deg2rad(1.0), \
     "ScoringSensorNoise": 50.0, \
-    "LocalizedDistanceThreshold": 15.0, \
+    "LocalizedDistanceThreshold": 150.0, \
     "LocalizedAngleThreshold": numpy.deg2rad(5.0), \
     "Localizing": 1, \
   }
@@ -74,11 +74,15 @@ def segment_to_segment_comparator(observed_segment, map_segment):
   return math.sqrt(alignment_shift ** 2 + shift_distance ** 2 + gap_distance ** 2)
 
 class Slam:
-  def __init__(self, initial_position, robot_covariance, num_points, segments, config = DefaultSlamConfig()):
+  def __init__(self, initial_position, robot_covariance, num_points, segments, \
+               lidar_offset = [0.0, 0.0, 0.0], \
+               robot_params = {}, config = DefaultSlamConfig()):
     # Initial state of the system
     self.set_config(config)
     self.set_map(segments)
     self.set_position(initial_position, robot_covariance, num_points)
+    self.lidar_offset = numpy.array(lidar_offset)
+    self.robot_params = robot_params
 
     # Things which will be computed and populated later
     self.lidar_points = []
@@ -193,14 +197,17 @@ class Slam:
     # update whether we are localized based on the covariance
     self.localized = self.is_localized_from_covariance(self.robot_covariance)
 
-  def extract_features(self, lidar_data, reference_pose):
+  def extract_features(self, lidar_data, reference_pose, lidar_offset):
     """Extracts the features from the lidar data using the reference pose"""
 
     # This is the pose from which lidar points are provided.
     self.reference_pose = reference_pose
 
+    # Compute the location of lidar.
+    lidar_pose = to_world_from_ref(lidar_offset, self.reference_pose)
+
     # convert the lidar data into cartesian data
-    self.cartesian_points = polar_to_cartesian(lidar_data, reference_pose)
+    self.cartesian_points = polar_to_cartesian(lidar_data, lidar_pose)
 
     # Extract the features
     self.seen_segments = extract_segments(self.cartesian_points, \
@@ -303,7 +310,7 @@ class Slam:
 
     # Extract the features using mean pose as the reference pose
     self.lidar_points = lidar_data
-    self.extract_features(lidar_data, self.robot_mean)
+    self.extract_features(lidar_data, self.robot_mean, self.lidar_offset)
 
     # Associate the features to the map
     self.associate_features(self.reference_pose, self.seen_segments, self.seen_corners)
@@ -359,6 +366,8 @@ class Slam:
       "map_segments": list(self.map_segments), \
       "map_corners": list(self.map_corners), \
       "config": self.config, \
+      "lidar_offset": self.lidar_offset.tolist(), \
+      "robot_params": self.robot_params, \
     })
 
 if __name__ == '__main__':

@@ -7,9 +7,9 @@ def plan_speeds_from_lidar(lidar_data, localized):
     return 0.0, 0.0
 
   fov = numpy.deg2rad(45.0)
-  want_distance = 100.0
-  stop_distance = 25.0
-  base_speed = 20.0
+  want_distance = 600.0
+  stop_distance = 300.0
+  base_speed = 100.0
 
   min_distance = want_distance
   for i, a, d in lidar_data:
