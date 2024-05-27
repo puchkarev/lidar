@@ -115,6 +115,7 @@ class Slam:
         errors.append(str(key) + " should not be in the config")
 
     if len(errors) > 0:
+      print("error setting config", ', '.join(errors))
       return ', '.join(errors)
 
     self.config = config
