@@ -50,8 +50,6 @@ def plan_speeds_from_lidar(lidar_data, localized):
     # this is weird. So stop
     return 0.0, 0.0
 
-  # return clamped_linear(x0 = stop_distance, y0 = -base_speed, x1 = want_distance, y1 = base_speed, x = min_distance), base_speed
-
 def plan_motion_from_lidar(lidar_data, localized):
   if not localized:
     return 0.0, 0.0

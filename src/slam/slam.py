@@ -107,7 +107,7 @@ class Slam:
       if key not in config:
         errors.append(str(key) + " missing from config")
       elif type(config[key]) is not type(default_config[key]):
-        error.append(str(key) + " should be of type " + str(type(default_config[key])) + \
+        errors.append(str(key) + " should be of type " + str(type(default_config[key])) + \
                      " but is of type " + str(type(config[key])))
 
     for key in config.keys():
